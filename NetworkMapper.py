@@ -87,13 +87,85 @@ class NetworkMapper (EventMixin):
 		if swName == "s1" and srcip == "10.1.0.5" and dstip == "10.0.0.5":
 			return of.OFPP_FLOOD
 
-		return int(self.adjacency[self.switchMap[swName]][self.switchMap[neighbour]])
+		if not self.adjacency[self.switchMap[swName]][self.switchMap[neighbour]] == None :
+			return self.adjacency[self.switchMap[swName]][self.switchMap[neighbour]]
+		else :
+			return None
+
+	def findOutputPort1(self, sw1, sw2) :
+		if not self.adjacency[self.switchMap[sw1]][self.switchMap[sw2]] == None :
+			return self.adjacency[self.switchMap[sw1]][self.switchMap[sw2]]
+		else :
+			return None
+
 
 	def getSubnet(self, ip, subnetMask) :
-		if ip == "10.0.0.5" :
+		if ip == "10.0.0.5" or ip == "10.0.0.0":
 			return "10.0.0.0"
-		if ip == "10.1.0.5" :
-			return "10.1.0.5"
+		if ip == "10.1.0.5" or ip == "10.1.0.0":
+			return "10.1.0.0"
+
+
+	def addForwardingRules(self, srcSubnet, dstSubnet, route) :
+		"This function proactively adds the forwarding rules from srcSubnet to dstSubnet."
+
+		i = 0
+		while i < len(route)  :
+			# Route is the list of switches across which the srcSubnet > dstSubnet packet must go. 
+
+			if not i == (len(route) - 1) :		
+				#Add rule for route(i) -> route(i+1) 
+				print "Adding rule for Switch " + route[i]
+				self.proactiveInstallRule(
+					connection = self.switchConnections[route[i]], 
+					srcip = srcSubnet, dstip = dstSubnet, 
+					outport = self.findOutputPort1(route[i], route[i+1]) )
+			else :
+				# Last switch : Flood. 
+				print "Adding rule for Switch " + route[i]
+				self.proactiveInstallRule(
+					connection = self.switchConnections[route[i]], 
+					srcip = srcSubnet, dstip = dstSubnet, 
+					outport = of.OFPP_FLOOD )
+			i = i + 1
+
+	def proactiveInstallRule(self, connection, srcip, dstip, outport, vlan=0):
+		msg = of.ofp_flow_mod()
+		
+		#Match 
+		msg.match = of.ofp_match()
+		msg.match.dl_type = ethernet.IP_TYPE
+		msg.match.set_nw_src(IPAddr(self.getSubnet(srcip, 24)), 24)
+		msg.match.set_nw_dst(IPAddr(self.getSubnet(dstip, 24)), 24)
+
+		"""
+		if not vlan == 0 : 
+			# Need to set VLAN Tag for isolation of tenant traffic.
+			msg.actions.append(of.ofp_action_vlan_vid(vlan_vid = vlan)) """
+
+		msg.actions.append(of.ofp_action_output(port = outport))
+
+		connection.send(msg)
+
+	def reactiveInstallRule(self, event, srcip, dstip, outport, vlan=0):
+		msg = of.ofp_flow_mod()
+		
+		#Match 
+		msg.match = of.ofp_match()
+		msg.match.dl_type = ethernet.IP_TYPE
+		msg.match.set_nw_src(IPAddr(self.getSubnet(srcip, 24)), 24)
+		msg.match.set_nw_dst(IPAddr(self.getSubnet(dstip, 24)), 24)
+
+		"""
+		if not vlan == 0 : 
+			# Need to set VLAN Tag for isolation of tenant traffic.
+			msg.actions.append(of.ofp_action_vlan_vid(vlan_vid = vlan)) """
+
+		msg.actions.append(of.ofp_action_output(port = outport))
+
+		msg.data = event.ofp
+		msg.in_port = event.port
+		event.connection.send(msg)
 
 	def _handle_LinkEvent (self, event):
 		l = event.link
@@ -104,14 +176,15 @@ class NetworkMapper (EventMixin):
 				   sw1, l.port1,
 				   sw2, l.port2)
 
-		self.adjacency[sw1][sw2] = l.port1
-		self.adjacency[sw2][sw1] = l.port2
+		self.adjacency[sw1][sw2] = int(l.port1)
+		self.adjacency[sw2][sw1] = int(l.port2)
 
 	def _handle_PacketIn (self, event):
 		"""
 		Handle packet in messages from the switch.
 		"""
 		packet = event.parsed
+
 
 		def install_fwdrule(event,srcip,dstip,outport,vlan=0):
 			msg = of.ofp_flow_mod()
@@ -166,11 +239,21 @@ class NetworkMapper (EventMixin):
   					print "Vlan header is there."
   					print packet.__str__()
 
+  				route1 = ["s1", "s2", "s3", "s4"]
+				self.addForwardingRules(srcSubnet = "10.0.0.0" , dstSubnet = "10.1.0.0", 
+				route = route1)
+
+				route2 = ["s4", "s3", "s2", "s1"]
+				self.addForwardingRules(srcSubnet = "10.1.0.0" , dstSubnet = "10.0.0.0", 
+				route = route2)
+  				
   				#switch is event.dpid
+  				"""
 				sw = dpidToStr(event.dpid)
 				swName = self.findSwitchName(sw)
 				outport = self.findOutputPort(swName, ip.srcip, ip.dstip, 0, routeTag)
 				install_fwdrule(event, ip.srcip, ip.dstip, outport, 1)
+				"""
 
 
 		handle_IP_packet(packet)
@@ -182,7 +265,6 @@ class NetworkMapper (EventMixin):
 def launch():
 	# Run spanning tree so that we can deal with topologies with loops
 	pox.openflow.discovery.launch()
-	pox.openflow.spanning_tree.launch()
 
 	'''
 	Starting the Topology Slicing module
