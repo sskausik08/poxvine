@@ -1,0 +1,41 @@
+Notes.txt
+==================================================
+Done : 
+1. Dumping flows of a switch on mininet: sh ovs-ofctl dump-flows s1
+2. msg.match.dl_type = ethernet.IP_TYPE : Needed to set to check IP.
+3. Use VLAN ID as tenant ID.
+4. Use VLAN Priority as RouteTag.
+
+
+13 Feb : 
+1. NSX reproduces in software the entire networking environment, including L2, L3 and L4–L7 network services within each virtual network. NSX offers a distributed logical architecture for L2–L7 services, provisioning them programmatically when virtual machines are deployed and moving them with the virtual machines,
+
+2. The VND paper does not use virtual routers for its abstraction. Since it is more of a trace collection program, it does not 
+require the need of instantiation of a virtual router/switch.
+
+----
+Building a network Testing tool?
+
+->For conventional networks : 
+Trouble points are routers (switches do not induce issues in the network) due to configuration, etc. 
+So, we can consider L3 topologies. 
+
+->For SDN networks : 
+SDNs do not have different switches and routers (can be performed by a common entity). 
+We can deploy virtual switches on the physical hardware and have a controller for the OVS. This way, we can 
+test multiple SDNs as well.
+
+----Notes
+Plan of Action:
+1. Physical topology creation - Done.
+2. Virtual Network Specification.
+3. Mapping to Physical Network.
+4. Controller program to install rules for correct forwarding. 
+	--> First Step : Simple connectivity between entities. In this, I will treat vRouters as hosts for simplicity.
+
+
+
+
+Todo:
+1. ARP Packet Handling! 
+2. 
