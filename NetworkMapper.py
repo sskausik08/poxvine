@@ -1,10 +1,6 @@
 '''
-Coursera:
-- Software Defined Networking (SDN) course
--- Network Virtualization
-
-Professor: Nick Feamster
-Teaching Assistant: Arpit Gupta
+Virtual Network Simulator POX Application.
+Author : Kausik Subramanian
 '''
 
 from pox.core import core
@@ -40,6 +36,10 @@ class NetworkMapper (EventMixin):
 		
 		self.switchMap = dict()
 		self.switchConnections = dict()
+
+
+		#Temp
+		self.routeAdded = False
 
 		
 	"""This event will be raised each time a switch will connect to the controller"""
@@ -113,23 +113,35 @@ class NetworkMapper (EventMixin):
 		while i < len(route)  :
 			# Route is the list of switches across which the srcSubnet > dstSubnet packet must go. 
 
-			if not i == (len(route) - 1) :		
+			if i == 0 :
+				# First switch. Add Fwd rule with vlan action header.
+				print "Adding VLAN Tag rule for Switch " + route[i]
+				self.proactiveInstallRule(
+					connection = self.switchConnections[route[i]], 
+					srcip = srcSubnet, dstip = dstSubnet, 
+					outport = self.findOutputPort1(route[i], route[i+1]), 
+					vlanMatch = 0, vlanAction = 5 )
+
+			elif not i == (len(route) - 1) :		
 				#Add rule for route(i) -> route(i+1) 
 				print "Adding rule for Switch " + route[i]
 				self.proactiveInstallRule(
 					connection = self.switchConnections[route[i]], 
 					srcip = srcSubnet, dstip = dstSubnet, 
-					outport = self.findOutputPort1(route[i], route[i+1]) )
+					outport = self.findOutputPort1(route[i], route[i+1]),
+					vlanMatch = 5, vlanAction = 0 )
+
 			else :
 				# Last switch : Flood. 
 				print "Adding rule for Switch " + route[i]
 				self.proactiveInstallRule(
 					connection = self.switchConnections[route[i]], 
 					srcip = srcSubnet, dstip = dstSubnet, 
-					outport = of.OFPP_FLOOD )
+					outport = of.OFPP_FLOOD, 
+					vlanMatch = 5 , vlanAction = -1 )
 			i = i + 1
 
-	def proactiveInstallRule(self, connection, srcip, dstip, outport, vlan=0):
+	def proactiveInstallRule(self, connection, srcip, dstip, outport, vlanMatch = 0, vlanAction = 0):
 		msg = of.ofp_flow_mod()
 		
 		#Match 
@@ -138,13 +150,19 @@ class NetworkMapper (EventMixin):
 		msg.match.set_nw_src(IPAddr(self.getSubnet(srcip, 24)), 24)
 		msg.match.set_nw_dst(IPAddr(self.getSubnet(dstip, 24)), 24)
 
-		"""
-		if not vlan == 0 : 
+		if not vlanMatch == 0 : 
+			msg.match.dl_vlan = vlanMatch
+
+		if vlanAction == -1 : 
+			#Strip Vlan tag.
+			msg.actions.append(of.ofp_action_strip_vlan())
+
+		elif not vlanAction == 0 : 
 			# Need to set VLAN Tag for isolation of tenant traffic.
-			msg.actions.append(of.ofp_action_vlan_vid(vlan_vid = vlan)) """
+			msg.actions.append(of.ofp_action_vlan_vid(vlan_vid = vlanAction)) 
+
 
 		msg.actions.append(of.ofp_action_output(port = outport))
-
 		connection.send(msg)
 
 	def reactiveInstallRule(self, event, srcip, dstip, outport, vlan=0):
@@ -195,10 +213,10 @@ class NetworkMapper (EventMixin):
 			msg.match.set_nw_src(IPAddr(self.getSubnet(srcip, 24)), 24)
 			msg.match.set_nw_dst(IPAddr(self.getSubnet(dstip, 24)), 24)
 
-			"""
+			
 			if not vlan == 0 : 
 				# Need to set VLAN Tag for isolation of tenant traffic.
-				msg.actions.append(of.ofp_action_vlan_vid(vlan_vid = vlan)) """
+				msg.actions.append(of.ofp_action_vlan_vid(vlan_vid = vlan)) 
 
 			msg.actions.append(of.ofp_action_output(port = outport))
 
@@ -239,21 +257,24 @@ class NetworkMapper (EventMixin):
   					print "Vlan header is there."
   					print packet.__str__()
 
-  				route1 = ["s1", "s2", "s3", "s4"]
-				self.addForwardingRules(srcSubnet = "10.0.0.0" , dstSubnet = "10.1.0.0", 
-				route = route1)
+  				if not self.routeAdded : 
+	  				route1 = ["s1", "s2", "s3", "s4"]
+					self.addForwardingRules(srcSubnet = "10.0.0.0" , dstSubnet = "10.1.0.0", 
+					route = route1)
 
-				route2 = ["s4", "s3", "s2", "s1"]
-				self.addForwardingRules(srcSubnet = "10.1.0.0" , dstSubnet = "10.0.0.0", 
-				route = route2)
-  				
+					route2 = ["s4", "s3", "s2", "s1"]
+					self.addForwardingRules(srcSubnet = "10.1.0.0" , dstSubnet = "10.0.0.0", 
+					route = route2)
+					self.routeAdded = True
+	  				
   				#switch is event.dpid
   				"""
 				sw = dpidToStr(event.dpid)
 				swName = self.findSwitchName(sw)
 				outport = self.findOutputPort(swName, ip.srcip, ip.dstip, 0, routeTag)
-				install_fwdrule(event, ip.srcip, ip.dstip, outport, 1)
+				install_fwdrule(event, ip.srcip, ip.dstip, outport, 5)
 				"""
+				
 
 
 		handle_IP_packet(packet)
