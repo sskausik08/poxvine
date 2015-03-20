@@ -3,8 +3,8 @@ Notes.txt
 Done : 
 1. Dumping flows of a switch on mininet: sh ovs-ofctl dump-flows s1
 2. msg.match.dl_type = ethernet.IP_TYPE : Needed to set to check IP.
-3. Use VLAN ID as tenant ID.
-4. Use VLAN Priority as RouteTag.
+3. Use VLAN ID as tenant ID + RouteTags -> Needs to be added at first switch of route and stripped at last switch of route.
+4. To send packet back input port, needed to use OFFP_IN_PORT
 
 
 13 Feb : 
