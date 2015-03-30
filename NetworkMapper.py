@@ -292,8 +292,8 @@ class NetworkMapper (EventMixin):
   				route1 = Route()
   				route2 = Route()
   				if not self.routeAdded : 
-	  				route1.addSrcSubnet("10.0.0.0")
-	  				route1.addDstSubnet("10.1.0.0")
+	  				route1.addSrcSubnet("10.0.0.0", 24)
+	  				route1.addDstSubnet("10.1.0.0", 24)
 	  				route1.addNextSwitch("s1", False)
 	  				route1.addNextSwitch("s2", False)
 	  				route1.addNextSwitch("s3", False)
@@ -312,8 +312,8 @@ class NetworkMapper (EventMixin):
 					route = route1)
 
 
-					route2.addSrcSubnet("10.1.0.0")
-	  				route2.addDstSubnet("10.0.0.0")
+					route2.addSrcSubnet("10.1.0.0", 24)
+	  				route2.addDstSubnet("10.0.0.0", 24)
 	  				route2.addNextSwitch("s4", False)
 	  				route2.addNextSwitch("s3", False)
 	  				route2.addNextSwitch("s2", False)
