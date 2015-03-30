@@ -108,11 +108,12 @@ class Route(object) :
 			return False
 
 
-
+"""
 virtTopo = Topology("tenant1")
 NMap = NetworkMapping(virtTopo = virtTopo)
 NMap.readFromFile()
 NMap.printMapping()
+"""
 
 
 
