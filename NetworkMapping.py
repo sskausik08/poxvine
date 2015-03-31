@@ -9,7 +9,7 @@ class NetworkMapping(object) :
 		self.hostMappings = []
 
 	def readFromFile(self):
-		f1 = open(self.virtualTopology.getName() + "-map/host-maps", 'r')
+		f1 = open("./pox/virtnetsim/" + self.virtualTopology.getName() + "-map/host-maps", 'r')
 		maps = f1.readlines()
 
 		for line in maps :
@@ -17,7 +17,7 @@ class NetworkMapping(object) :
 			self.hostMappings.append(map)
 		
 
-		f1 = open(self.virtualTopology.getName() + "-map/net-paths", 'r')
+		f1 = open("./pox/virtnetsim/" + self.virtualTopology.getName() + "-map/net-paths", 'r')
 		paths = f1.readlines()
 
 		for line in paths :
@@ -42,13 +42,21 @@ class NetworkMapping(object) :
 		for route in self.networkPaths :
 			route.printRoute()
 
+			"""
+			# First switch
+			sw = route.getFirstSwitch()
+			print sw
+			sw_next = route.getNextRouteTagSwitch()
+			print sw_next
+			"""
 
 
 
 
 
 class Route(object) :
-	""" This class is used to provide information of the route between two subnets with the routeTags."""
+	""" This class is used to provide information of the route between two subnets with the routeTags.
+	Important Convention : The First and Last switch must have RouteTag True."""
 
 	def __init__(self):
 		self.route = [] # Store the switch sequence 
@@ -87,11 +95,29 @@ class Route(object) :
 		else :
 			return self.route[self.routeIndex]
 
+	def getNextRouteTagSwitch(self) :
+		""" Increment Route Index and return switch with Routetag. Not to be used for first switch. """
+		self.routeIndex += 1
+		while not self.routeTags[self.routeIndex] :
+			self.routeIndex += 1
+
+		if self.routeIndex >= len(self.route) :
+			return None
+		else :
+			return self.route[self.routeIndex]
+
+
 	def getNextSwitch(self) :
 		if self.routeIndex + 1 >= len(self.route) :
 			return None
 		else :
 			return self.route[self.routeIndex + 1]
+
+	def getPrevSwitch(self) :
+		if self.routeIndex - 1 < 0 :
+			return None
+		else :
+			return self.route[self.routeIndex - 1]
 
 	def getCurrentRouteTag(self):
 		""" Returns current Route Tag. Usage to be done after calling getCurrentSwitch() """
@@ -114,6 +140,8 @@ NMap = NetworkMapping(virtTopo = virtTopo)
 NMap.readFromFile()
 NMap.printMapping()
 """
+
+
 
 
 

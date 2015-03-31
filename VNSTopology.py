@@ -5,6 +5,10 @@ class Topology(object):
 	def __init__(self, name="topo-0"):
 		self.name = name
 		self.racks = []
+		self.switches = dict()
+		
+		# Initialise from configuration files.
+		self.readFromFile()
 
 	def getName(self) :
 		return self.name
@@ -48,10 +52,55 @@ class Topology(object):
 				""" Mapping not possible on rack. Reset the uncommitted mapping """
 				rack.resetMapping()
 
-	
+	def addSwitch(self, name, size=1024) :
+		sw = Switch(name, size)
+		self.switches[name] = sw
 
-	
 
+	def addLink(self, src, dst, bw) :
+		src.addLink(dst,bw)
+		dst.addLink(src,bw)
+
+
+	def readFromFile(self) :
+		# Read the switches
+		f1 = open("./pox/virtnetsim/" + self.name + "/" + self.name + "-switches", 'r')
+		switches = f1.readlines()
+
+		for line in switches :
+			fields = line.split()
+			self.addSwitch(fields[0], int(fields[1]))
+
+
+		# Read the links
+		f2 = open("./pox/virtnetsim/" + self.name + "/" + self.name + "-links", 'r')
+		links = f2.readlines()
+
+		for line in links :
+			fields = line.split()
+			self.addLink(src=self.switches[fields[0]], dst=self.switches[fields[1]], bw=int(fields[2]))
+
+	def getNeighbour(self, src, dst) :
+		# Breadth First Search from src to dst.
+		srcSw = self.switches[src]
+		dstSw = self.switches[dst]
+		next = [srcSw]
+
+		while dstSw not in next:
+			for node in next:
+				neighbours = node.getNeighbours()
+				for n in neighbours:
+					if n not in next :
+						next.append(n)
+						n.setParent(node)
+
+		# Backtrack from dstSw to srcSw to find neighbour.
+		parent = dstSw
+
+		while not parent.getParent() == srcSw :
+			parent = parent.getParent()
+
+		return parent.getName()
 
 
 class Rack(object):
@@ -61,6 +110,7 @@ class Rack(object):
 		self.hostlist = []
 		self.name = name
 		self.countMappedHosts = 0
+
 
 	def display(self) :
 		for host in self.hostlist : 
@@ -221,6 +271,31 @@ class Host(object):
 
 	def isMapped(self) :
 		return self.isMappedFlag
+
+
+class Switch(object) :
+	def __init__(self, name = "sw0", size = 1024):
+		self.name = name
+		self.flowTableSize=size
+		self.neighbours = []
+
+		# Used for routing.
+		self.parent = None
+
+	def addLink(self, dst, bw) :
+		self.neighbours.append(dst)
+
+	def getName(self) :
+		return self.name
+
+	def getNeighbours(self) :
+		return self.neighbours
+
+	def getParent(self) :
+		return self.parent
+
+	def setParent(self, parent) :
+		self.parent = parent
 
 
 

@@ -21,6 +21,7 @@ from pox.lib.addresses import IPAddr, EthAddr
 from collections import namedtuple
 import os 
 from NetworkMapping import Route 
+from VNSTopology import Topology
 
 log = core.getLogger()
 
@@ -38,6 +39,8 @@ class NetworkMapper (EventMixin):
 		self.switchMap = dict()
 		self.switchConnections = dict()
 
+		# Initialize Physical Topology.
+		self.phyTopo = Topology("phy")
 
 		#Temp
 		self.routeAdded = False
@@ -50,7 +53,6 @@ class NetworkMapper (EventMixin):
 		# Each switch has its own flow table. As we'll see in this 
 		# example we need to write different rules in different tables.
 		dpid = dpidToStr(event.dpid)
-		log.debug("Switch %s has come up.", dpid)
 		
 		switchName = ""
 		for m in event.connection.features.ports:
@@ -64,36 +66,21 @@ class NetworkMapper (EventMixin):
 		self.switchConnections[switchName] = event.connection
 
 
+
 	def findSwitchName(self, dpid) :
 		for name in self.switchMap.iterkeys() :
 			if self.switchMap[name] == dpid :
 				return name
 
-	def findOutputPort(self, swName, srcip="0.0.0.0", dstip="0.0.0.0", tenantID = 0, routeTag = 0) :
-		neighbour = ""
-		if swName == "s1" and srcip == "10.0.0.5" and dstip == "10.1.0.5":
-			neighbour = "s2"
-		if swName == "s2" and srcip == "10.0.0.5" and dstip == "10.1.0.5":
-			neighbour = "s3"
-		if swName == "s3" and srcip == "10.0.0.5" and dstip == "10.1.0.5":
-			neighbour = "s4"
-		if swName == "s4" and srcip == "10.0.0.5" and dstip == "10.1.0.5":
-			return of.OFPP_FLOOD
-		if swName == "s4" and srcip == "10.1.0.5" and dstip == "10.0.0.5":
-			neighbour = "s3"
-		if swName == "s3" and srcip == "10.1.0.5" and dstip == "10.0.0.5":
-			neighbour = "s2"
-		if swName == "s2" and srcip == "10.1.0.5" and dstip == "10.0.0.5":
-			neighbour = "s1"
-		if swName == "s1" and srcip == "10.1.0.5" and dstip == "10.0.0.5":
-			return of.OFPP_FLOOD
-
-		if not self.adjacency[self.switchMap[swName]][self.switchMap[neighbour]] == None :
-			return self.adjacency[self.switchMap[swName]][self.switchMap[neighbour]]
-		else :
+	def getSwitchMacAddr(self, sw) :
+		if sw == None : 
 			return None
+		else : 
+			dpid = self.switchMap[sw]
+			mac = dpid.replace("-", ":")
+			return mac
 
-	def findOutputPort1(self, curr, next, prev = None) :
+	def findOutputPort(self, curr, next, prev = None) :
 		if next == prev :
 			return of.OFPP_IN_PORT # send back on the input port.
 
@@ -101,7 +88,9 @@ class NetworkMapper (EventMixin):
 			return self.adjacency[self.switchMap[curr]][self.switchMap[next]]
 		
 		else :
-			return None
+			#curr and next are not adjacent. Find the next switch.
+			sw = self.findNeighbour(src = curr, dst = next)
+			return self.adjacency[self.switchMap[curr]][self.switchMap[sw]]
 
 
 	def getSubnet(self, ip, subnetMask) :
@@ -111,6 +100,10 @@ class NetworkMapper (EventMixin):
 			return "10.1.0.0"
 
 
+	def findNeighbour(self, src, dst) :
+		return self.phyTopo.getNeighbour(src, dst)
+
+
 	def addForwardingRules(self, srcSubnet, dstSubnet, route) :
 		"This function proactively adds the forwarding rules from srcSubnet to dstSubnet."
 
@@ -118,50 +111,47 @@ class NetworkMapper (EventMixin):
 
 		# First switch
 		sw = route.getFirstSwitch()
-		sw_next = route.getNextSwitch()
+		sw_next = route.getNextRouteTagSwitch()
+
 		print "Adding VLAN Tag rule for Switch " + sw
-		self.proactiveInstallRule(
+		self.installRouteTagRule(
 			connection = self.switchConnections[sw], 
 			srcip = srcSubnet, dstip = dstSubnet, 
-			outport = self.findOutputPort1(curr = sw, next = sw_next, prev = None), 
+			srcSw = sw, dstSw = sw_next, prevSw=None,
 			vlanMatch = 0, vlanAction = 4,
 			routeTagMatch = 0, routeTagAction = currRouteTag)
 
-		sw_prev = sw
-		sw = route.getCurrentSwitch()
+		
+		sw = sw_next
+		sw_prev = route.getPrevSwitch()
+
 		while not route.isLastSwitch() : 
-			sw_next = route.getNextSwitch()
+			sw_next = route.getNextRouteTagSwitch()
 
 			print "Adding rule for Switch " + sw
 			if route.getCurrentRouteTag() :
-				self.proactiveInstallRule(
+				self.installRouteTagRule(
 					connection = self.switchConnections[sw], 
 					srcip = srcSubnet, dstip = dstSubnet, 
-					outport = self.findOutputPort1(curr = sw, next = sw_next, prev = sw_prev),
+					srcSw = sw, dstSw = sw_next, prevSw=sw_prev,
 					vlanMatch = 4, vlanAction = 0 ,
 					routeTagMatch = currRouteTag, routeTagAction = (currRouteTag + 1) ) 
 				currRouteTag += 1
-			else : 
-				self.proactiveInstallRule(
-					connection = self.switchConnections[sw], 
-					srcip = srcSubnet, dstip = dstSubnet, 
-					outport = self.findOutputPort1(curr = sw, next = sw_next, prev = sw_prev),
-					vlanMatch = 4, vlanAction = 0,
-					routeTagMatch = currRouteTag, routeTagAction = 0)
 
-			sw_prev = sw
-			sw = route.getCurrentSwitch()
+			sw = sw_next
+			sw_prev = route.getPrevSwitch()
 
 
 		# Last Switch. Strip VLAN
 		print "Adding rule for Switch " +  sw
 
-		self.proactiveInstallRule(
+		self.installRouteTagRule(
 			connection = self.switchConnections[sw], 
 			srcip = srcSubnet, dstip = dstSubnet, 
-			outport = of.OFPP_FLOOD, 
+			srcSw = sw, dstSw = None, prevSw = None,
 			vlanMatch = 4 , vlanAction = -1,
 			routeTagMatch = currRouteTag, routeTagAction = 0)
+	
 	
 
 	def getVlanId(self, tenantID, routeTag) :
@@ -169,7 +159,7 @@ class NetworkMapper (EventMixin):
 		# 12 Bit VLAN ID: Most Significant 6 bits : tenantID, Least Significant 6 bits : routeTag
 		return (tenantID * 64 + routeTag)
 
-	def proactiveInstallRule(self, connection, srcip, dstip, outport, 
+	def installRouteTagRule(self, connection, srcip, dstip, srcSw, dstSw, prevSw,
 		vlanMatch = 0, vlanAction = 0, routeTagMatch = 0, routeTagAction = 0):
 		msg = of.ofp_flow_mod()
 		
@@ -192,10 +182,28 @@ class NetworkMapper (EventMixin):
 		
 		elif vlanAction == 0 and not routeTagAction == 0:
 			msg.actions.append(of.ofp_action_vlan_vid(vlan_vid = self.getVlanId(vlanMatch, routeTagAction))) 
-
+		
+		if dstSw == None :
+			outport = of.OFPP_FLOOD
+		else :
+			msg.actions.append(of.ofp_action_dl_addr.set_dst(EthAddr(self.getSwitchMacAddr(dstSw))))
+			outport = self.findOutputPort(curr=srcSw, next=dstSw, prev=prevSw)
 
 		msg.actions.append(of.ofp_action_output(port = outport))
 		connection.send(msg)
+
+	def installSwitchTunnelRule(self, connection, srcSw, dstSw) :
+		msg = of.ofp_flow_mod()
+
+		#Match 
+		msg.match = of.ofp_match()
+		msg.match.dl_dst = dstSw
+
+		outport = findOutputPort(curr=srcSw, next=dstSw)
+		msg.actions.append(of.ofp_action_output(port = outport))
+		connection.send(msg)		
+
+
 
 	def reactiveInstallRule(self, event, srcip, dstip, outport, vlan=0):
 		msg = of.ofp_flow_mod()
@@ -252,6 +260,7 @@ class NetworkMapper (EventMixin):
 
 			msg.actions.append(of.ofp_action_output(port = outport))
 
+
 			msg.data = event.ofp
 			msg.in_port = event.port
 			event.connection.send(msg)
@@ -299,7 +308,7 @@ class NetworkMapper (EventMixin):
 	  				route1.addNextSwitch("s3", False)
 	  				route1.addNextSwitch("s4", True)
 	  				route1.addNextSwitch("s3", True)
-	  				route1.addNextSwitch("s4", False)
+	  				route1.addNextSwitch("s4", True)
 	  				"""
 	  				route1.addNextSwitch("s3", False)
 	  				route1.addNextSwitch("s2", False)
@@ -314,10 +323,10 @@ class NetworkMapper (EventMixin):
 
 					route2.addSrcSubnet("10.1.0.0", 24)
 	  				route2.addDstSubnet("10.0.0.0", 24)
-	  				route2.addNextSwitch("s4", False)
+	  				route2.addNextSwitch("s4", True)
 	  				route2.addNextSwitch("s3", False)
 	  				route2.addNextSwitch("s2", False)
-	  				route2.addNextSwitch("s1", False)
+	  				route2.addNextSwitch("s1", True)
 
 	  				self.addForwardingRules(srcSubnet = "10.1.0.0" , dstSubnet = "10.0.0.0", 
 					route = route2)
