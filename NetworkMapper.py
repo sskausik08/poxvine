@@ -59,6 +59,7 @@ class NetworkMapper (EventMixin):
 			name = m.name.split("-")
 			if switchName == "" :
 				switchName = name[0]
+				print switchName
 			if not switchName == name[0] :
 				log.debug("Some Error in mapping name from the OpenFlow Switch Up Message.")
 
@@ -81,16 +82,17 @@ class NetworkMapper (EventMixin):
 			return mac
 
 	def findOutputPort(self, curr, next, prev = None) :
-		if next == prev :
+		#curr and next are not adjacent. Find the next switch.
+		sw = self.findNeighbour(src = curr, dst = next)
+		if sw == prev :
 			return of.OFPP_IN_PORT # send back on the input port.
 
-		elif not self.adjacency[self.switchMap[curr]][self.switchMap[next]] == None :
-			return self.adjacency[self.switchMap[curr]][self.switchMap[next]]
-		
-		else :
-			#curr and next are not adjacent. Find the next switch.
-			sw = self.findNeighbour(src = curr, dst = next)
+		elif not self.adjacency[self.switchMap[curr]][self.switchMap[sw]] == None :
 			return self.adjacency[self.switchMap[curr]][self.switchMap[sw]]
+		
+		else :	
+			print "[ERROR] No edge present."
+			return None
 
 
 	def getSubnet(self, ip, subnetMask) :
@@ -98,6 +100,8 @@ class NetworkMapper (EventMixin):
 			return "10.0.0.0"
 		if ip == "10.1.0.5" or ip == "10.1.0.0":
 			return "10.1.0.0"
+		if ip == "10.2.0.5" or ip == "10.2.0.0":
+			return "10.2.0.0"
 
 
 	def findNeighbour(self, src, dst) :
@@ -152,7 +156,18 @@ class NetworkMapper (EventMixin):
 			vlanMatch = 4 , vlanAction = -1,
 			routeTagMatch = currRouteTag, routeTagAction = 0)
 	
-	
+
+		# Add the required switch Tunnel rules.
+
+		for src in self.switchMap.iterkeys():
+			for dst in self.switchMap.iterkeys():
+				if not src == dst :
+					self.installSwitchTunnelRule(
+						connection = self.switchConnections[src],
+						srcSw = src, dstSw = dst)
+
+
+
 
 	def getVlanId(self, tenantID, routeTag) :
 		# A function of tenant ID and routeTag. 
@@ -186,7 +201,7 @@ class NetworkMapper (EventMixin):
 		if dstSw == None :
 			outport = of.OFPP_FLOOD
 		else :
-			msg.actions.append(of.ofp_action_dl_addr.set_dst(EthAddr(self.getSwitchMacAddr(dstSw))))
+			msg.actions.append(of.ofp_action_dl_addr.set_src(EthAddr(self.getSwitchMacAddr(dstSw))))
 			outport = self.findOutputPort(curr=srcSw, next=dstSw, prev=prevSw)
 
 		msg.actions.append(of.ofp_action_output(port = outport))
@@ -197,9 +212,11 @@ class NetworkMapper (EventMixin):
 
 		#Match 
 		msg.match = of.ofp_match()
-		msg.match.dl_dst = dstSw
+		msg.match.dl_src = EthAddr(self.getSwitchMacAddr(dstSw))
 
-		outport = findOutputPort(curr=srcSw, next=dstSw)
+		outport = self.findOutputPort(curr=srcSw, next=dstSw)
+		if outport == None :
+			print "NONE is here. Why?"
 		msg.actions.append(of.ofp_action_output(port = outport))
 		connection.send(msg)		
 
@@ -300,15 +317,20 @@ class NetworkMapper (EventMixin):
 
   				route1 = Route()
   				route2 = Route()
+  				route3 = Route()
+  				route4 = Route()
+
   				if not self.routeAdded : 
 	  				route1.addSrcSubnet("10.0.0.0", 24)
 	  				route1.addDstSubnet("10.1.0.0", 24)
+	  				route1.addNextSwitch("s10", True)
 	  				route1.addNextSwitch("s1", False)
 	  				route1.addNextSwitch("s2", False)
 	  				route1.addNextSwitch("s3", False)
 	  				route1.addNextSwitch("s4", True)
 	  				route1.addNextSwitch("s3", True)
-	  				route1.addNextSwitch("s4", True)
+	  				route1.addNextSwitch("s4", False)
+	  				route1.addNextSwitch("s20", True)
 	  				"""
 	  				route1.addNextSwitch("s3", False)
 	  				route1.addNextSwitch("s2", False)
@@ -323,14 +345,37 @@ class NetworkMapper (EventMixin):
 
 					route2.addSrcSubnet("10.1.0.0", 24)
 	  				route2.addDstSubnet("10.0.0.0", 24)
-	  				route2.addNextSwitch("s4", True)
+	  				route2.addNextSwitch("s20", True)
+	  				route2.addNextSwitch("s4", False)
 	  				route2.addNextSwitch("s3", False)
 	  				route2.addNextSwitch("s2", False)
-	  				route2.addNextSwitch("s1", True)
+	  				route2.addNextSwitch("s1", False)
+	  				route2.addNextSwitch("s10", True)
 
 	  				self.addForwardingRules(srcSubnet = "10.1.0.0" , dstSubnet = "10.0.0.0", 
 					route = route2)
 
+	  				route3.addSrcSubnet("10.0.0.0", 24)
+	  				route3.addDstSubnet("10.2.0.0", 24)
+	  				route3.addNextSwitch("s10", True)
+	  				route3.addNextSwitch("s1", False)
+	  				route3.addNextSwitch("s2", False)
+	  				route3.addNextSwitch("s3", False)
+	  				route3.addNextSwitch("s4", True)
+	  				route3.addNextSwitch("s3", False)
+	  				route3.addNextSwitch("s30", True)
+	  				self.addForwardingRules(srcSubnet = "10.0.0.0" , dstSubnet = "10.2.0.0", 
+					route = route3)
+
+					route4.addSrcSubnet("10.2.0.0", 24)
+	  				route4.addDstSubnet("10.0.0.0", 24)
+	  				route4.addNextSwitch("s30", True)
+	  				route4.addNextSwitch("s3", False)
+	  				route4.addNextSwitch("s2", False)
+	  				route4.addNextSwitch("s1", False)
+	  				route4.addNextSwitch("s10", True)
+	  				self.addForwardingRules(srcSubnet = "10.2.0.0" , dstSubnet = "10.0.0.0", 
+					route = route4)
 
 					self.routeAdded = True
 	  				

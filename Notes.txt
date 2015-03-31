@@ -6,6 +6,10 @@ Done :
 3. Use VLAN ID as tenant ID + RouteTags -> Needs to be added at first switch of route and stripped at last switch of route.
 4. To send packet back input port, needed to use OFFP_IN_PORT
 
+Not Able to add tunnels, try out an alternate approach.
+5. Cannot use DST MAC address as tunnel destination, (before host needs to be modified.) So, using source MAC address as tunnel.
+
+
 
 13 Feb : 
 1. NSX reproduces in software the entire networking environment, including L2, L3 and L4–L7 network services within each virtual network. NSX offers a distributed logical architecture for L2–L7 services, provisioning them programmatically when virtual machines are deployed and moving them with the virtual machines,

@@ -1,5 +1,30 @@
 import heapq
 
+class Switch(object) :
+	def __init__(self, name = "sw0", size = 1024):
+		self.name = name
+		self.flowTableSize=size
+		self.neighbours = []
+
+		# Used for routing.
+		self.parent = None
+
+	def addLink(self, dst, bw) :
+		self.neighbours.append(dst)
+
+	def getName(self) :
+		return self.name
+
+	def getNeighbours(self) :
+		return self.neighbours
+
+	def getParent(self) :
+		return self.parent
+
+	def setParent(self, parent) :
+		self.parent = parent
+
+
 class Topology(object):
 	"Class for a Topology"
 	def __init__(self, name="topo-0"):
@@ -273,29 +298,7 @@ class Host(object):
 		return self.isMappedFlag
 
 
-class Switch(object) :
-	def __init__(self, name = "sw0", size = 1024):
-		self.name = name
-		self.flowTableSize=size
-		self.neighbours = []
 
-		# Used for routing.
-		self.parent = None
-
-	def addLink(self, dst, bw) :
-		self.neighbours.append(dst)
-
-	def getName(self) :
-		return self.name
-
-	def getNeighbours(self) :
-		return self.neighbours
-
-	def getParent(self) :
-		return self.parent
-
-	def setParent(self, parent) :
-		self.parent = parent
 
 
 
