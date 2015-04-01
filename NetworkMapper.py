@@ -20,7 +20,7 @@ from pox.lib.util import dpidToStr
 from pox.lib.addresses import IPAddr, EthAddr
 from collections import namedtuple
 import os 
-from NetworkMapping import Route 
+from NetworkMapping import * 
 from VNSTopology import Topology
 
 log = core.getLogger()
@@ -41,6 +41,16 @@ class NetworkMapper (EventMixin):
 
 		# Initialize Physical Topology.
 		self.phyTopo = Topology("phy")
+		self.virtTopos = []
+		virtTopo = Topology("tenant1")
+		self.virtTopos.append(virtTopo)
+		self.networkMap = NetworkMapping(phyTopo = self.phyTopo, virtTopo = virtTopo)
+		self.networkMap.readFromFile()
+		self.networkMap.printMapping()
+
+		self.networkRoutes = []
+
+		self.networkRoutes.extend(self.networkMap.getNetworkRoutes())
 
 		#Temp
 		self.routeAdded = False
@@ -315,69 +325,11 @@ class NetworkMapper (EventMixin):
   					print "Vlan header is there."
   					print packet.__str__()
 
-  				route1 = Route()
-  				route2 = Route()
-  				route3 = Route()
-  				route4 = Route()
 
   				if not self.routeAdded : 
-	  				route1.addSrcSubnet("10.0.0.0", 24)
-	  				route1.addDstSubnet("10.1.0.0", 24)
-	  				route1.addNextSwitch("s10", True)
-	  				route1.addNextSwitch("s1", False)
-	  				route1.addNextSwitch("s2", False)
-	  				route1.addNextSwitch("s3", False)
-	  				route1.addNextSwitch("s4", True)
-	  				route1.addNextSwitch("s3", True)
-	  				route1.addNextSwitch("s4", False)
-	  				route1.addNextSwitch("s20", True)
-	  				"""
-	  				route1.addNextSwitch("s3", False)
-	  				route1.addNextSwitch("s2", False)
-	  				route1.addNextSwitch("s1", True)
-	  				route1.addNextSwitch("s2", False)
-	  				route1.addNextSwitch("s3", False)
-	  				route1.addNextSwitch("s4", False) """
-
-					self.addForwardingRules(srcSubnet = "10.0.0.0" , dstSubnet = "10.1.0.0", 
-					route = route1)
-
-
-					route2.addSrcSubnet("10.1.0.0", 24)
-	  				route2.addDstSubnet("10.0.0.0", 24)
-	  				route2.addNextSwitch("s20", True)
-	  				route2.addNextSwitch("s4", False)
-	  				route2.addNextSwitch("s3", False)
-	  				route2.addNextSwitch("s2", False)
-	  				route2.addNextSwitch("s1", False)
-	  				route2.addNextSwitch("s10", True)
-
-	  				self.addForwardingRules(srcSubnet = "10.1.0.0" , dstSubnet = "10.0.0.0", 
-					route = route2)
-
-	  				route3.addSrcSubnet("10.0.0.0", 24)
-	  				route3.addDstSubnet("10.2.0.0", 24)
-	  				route3.addNextSwitch("s10", True)
-	  				route3.addNextSwitch("s1", False)
-	  				route3.addNextSwitch("s2", False)
-	  				route3.addNextSwitch("s3", False)
-	  				route3.addNextSwitch("s4", True)
-	  				route3.addNextSwitch("s3", False)
-	  				route3.addNextSwitch("s30", True)
-	  				self.addForwardingRules(srcSubnet = "10.0.0.0" , dstSubnet = "10.2.0.0", 
-					route = route3)
-
-					route4.addSrcSubnet("10.2.0.0", 24)
-	  				route4.addDstSubnet("10.0.0.0", 24)
-	  				route4.addNextSwitch("s30", True)
-	  				route4.addNextSwitch("s3", False)
-	  				route4.addNextSwitch("s2", False)
-	  				route4.addNextSwitch("s1", False)
-	  				route4.addNextSwitch("s10", True)
-	  				self.addForwardingRules(srcSubnet = "10.2.0.0" , dstSubnet = "10.0.0.0", 
-					route = route4)
-
-					self.routeAdded = True
+  					for route in self.networkRoutes :
+  						self.addForwardingRules(route.getSrcSubnet(), route.getDstSubnet(), route)
+	  				
 	  				
   				#switch is event.dpid
   				"""

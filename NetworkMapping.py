@@ -5,7 +5,7 @@ class NetworkMapping(object) :
 	def __init__(self, phyTopo = None, virtTopo = None):
 		self.virtualTopology = virtTopo
 		self.physicalTopology = phyTopo
-		self.networkPaths = []
+		self.networkRoutes = []
 		self.hostMappings = []
 
 	def readFromFile(self):
@@ -35,11 +35,14 @@ class NetworkMapping(object) :
 					route.addNextSwitch(fields[i], False)
 				i += 2
 
-			self.networkPaths.append(route)
+			self.networkRoutes.append(route)
+
+	def getNetworkRoutes(self) :
+		return self.networkRoutes
 
 	def printMapping(self) :
-		print "Network Paths : "
-		for route in self.networkPaths :
+		print "Network Routes : "
+		for route in self.networkRoutes :
 			route.printRoute()
 
 			"""
@@ -70,6 +73,13 @@ class Route(object) :
 	def addDstSubnet(self, subnet, prefixlen = 24):
 		self.dstSubnet = subnet
 		self.dstPrefixLen = prefixlen
+
+	def getSrcSubnet(self):
+		return self.srcSubnet
+
+	def getDstSubnet(self):
+		return self.dstSubnet
+
 
 	def addNextSwitch(self, sw, routeTag = False):
 		self.route.append(sw)
