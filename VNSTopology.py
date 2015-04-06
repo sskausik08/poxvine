@@ -1,5 +1,3 @@
-import heapq
-
 class Switch(object) :
 	def __init__(self, name = "sw0", size = 1024):
 		self.name = name
@@ -86,6 +84,10 @@ class Topology(object):
 		src.addLink(dst,bw)
 		dst.addLink(src,bw)
 
+	def addLinkStr(self, srcStr, dstStr, bw) :
+		src = self.switches[srcStr]
+		dst = self.switches[dstStr]
+		self.addLink(src = src, dst = dst, bw = bw)
 
 	def readFromFile(self) :
 		# Read the switches
@@ -126,6 +128,62 @@ class Topology(object):
 			parent = parent.getParent()
 
 		return parent.getName()
+
+	def getRoute(self, src, dst) :
+		# Breadth First Search from src to dst.
+		srcSw = self.switches[src]
+		dstSw = self.switches[dst]
+		next = [srcSw]
+
+		while dstSw not in next:
+			for node in next:
+				neighbours = node.getNeighbours()
+				for n in neighbours:
+					if n not in next :
+						next.append(n)
+						n.setParent(node)
+
+		# Backtrack from dstSw to srcSw to find neighbour.
+		route = Route()
+		route.addNextSwitch(dstSw.getName())
+		parent = dstSw.getParent()
+
+		while not parent == srcSw :
+			route.addNextSwitch(parent.getName())
+			parent = parent.getParent()
+
+		route.addNextSwitch(srcSw.getName())
+		route.reverse()
+
+		return route
+
+	def getCompleteRoute(self, route):
+		""" Finds complete route from next node info """
+
+		completeRoute = Route()
+		completeRoute.addSrcSubnet(route.getSrcSubnet())
+		completeRoute.addDstSubnet(route.getDstSubnet())
+		sw = route.getFirstSwitch()
+		sw_next = route.getCurrentSwitch()
+
+		completeRoute.addRoute(self.getRoute(sw, sw_next))
+		
+
+		sw = sw_next
+		while not route.isLastSwitch():
+			sw_next = route.getCurrentSwitch()
+
+			completeRoute.removeLastSwitch()
+			completeRoute.addRoute(self.getRoute(sw, sw_next))
+
+			sw = sw_next
+
+		return completeRoute
+
+
+
+
+
 
 
 class Rack(object):
@@ -298,7 +356,114 @@ class Host(object):
 		return self.isMappedFlag
 
 
+class Route(object) :
+	""" This class is used to provide information of the route between two subnets with the routeTags.
+	Important Convention : The First and Last switch must have RouteTag True."""
 
+	def __init__(self):
+		self.route = [] # Store the switch sequence 
+		self.routeTags = [] # For every corresponding switch, store whether a routeTag change is required or not.
+		self.routeIndex = 0
+
+		self.srcSubnet = "0.0.0.0"
+		self.dstSubnet = "0.0.0.0"
+
+	def addSrcSubnet(self, subnet, prefixlen = 24):
+		self.srcSubnet = subnet
+		self.srcPrefixLen = prefixlen
+
+	def addDstSubnet(self, subnet, prefixlen = 24):
+		self.dstSubnet = subnet
+		self.dstPrefixLen = prefixlen
+
+	def getSrcSubnet(self):
+		return self.srcSubnet
+
+	def getDstSubnet(self):
+		return self.dstSubnet
+
+	def addNextSwitch(self, sw, routeTag = False):
+		self.route.append(sw)
+		self.routeTags.append(routeTag)
+
+	def removeLastSwitch(self) :
+		self.route.pop()
+		self.routeTags.pop()
+
+	def addRoute(self, route) :
+		self.route.extend(route.getSwitches())
+		self.routeTags.extend(route.getRouteTags())
+
+	def getSwitches(self) :
+		return self.route
+
+	def getRouteTags(self) :
+		return self.routeTags 
+
+	def setRouteTags(self) :
+		pass
+
+	def printRoute(self) :
+		print "Route: " + self.srcSubnet + " -> " + self.dstSubnet
+		i = 0
+		while i < len(self.route):
+			print self.route[i] + " " + str(self.routeTags[i])
+			i += 1
+
+
+	def getFirstSwitch(self) :
+		return self.route[0]
+	
+	def getCurrentSwitch(self) : 
+		""" Increment Route Index and return switch. Not to be used for first switch. """
+		self.routeIndex += 1
+		if self.routeIndex >= len(self.route) :
+			# End of route. 
+			return None
+		else :
+			return self.route[self.routeIndex]
+
+	def getNextRouteTagSwitch(self) :
+		""" Increment Route Index and return switch with Routetag. Not to be used for first switch. """
+		self.routeIndex += 1
+		while not self.routeTags[self.routeIndex] :
+			self.routeIndex += 1
+
+		if self.routeIndex >= len(self.route) :
+			return None
+		else :
+			return self.route[self.routeIndex]
+
+
+	def getNextSwitch(self) :
+		if self.routeIndex + 1 >= len(self.route) :
+			return None
+		else :
+			return self.route[self.routeIndex + 1]
+
+	def getPrevSwitch(self) :
+		if self.routeIndex - 1 < 0 :
+			return None
+		else :
+			return self.route[self.routeIndex - 1]
+
+	def getCurrentRouteTag(self):
+		""" Returns current Route Tag. Usage to be done after calling getCurrentSwitch() """
+		if self.routeIndex >= len(self.route) :
+			# End of route.  
+			return False
+		else :
+			return self.routeTags[self.routeIndex]
+
+	def isLastSwitch(self) :
+		if self.routeIndex == len(self.route) - 1 :
+			return True
+		else :
+			return False
+
+	def reverse(self) :
+		self.route.reverse()
+		self.routeTags.reverse()
 
 
 

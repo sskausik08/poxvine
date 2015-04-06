@@ -1,4 +1,4 @@
-from VNSTopology import Topology
+from VNSTopology import *
 class NetworkMapping(object) :
 	""" This class is used to provide the physical network paths between the subnets. """
 	
@@ -7,6 +7,50 @@ class NetworkMapping(object) :
 		self.physicalTopology = phyTopo
 		self.networkRoutes = []
 		self.hostMappings = []
+
+
+	def read(self) :
+		f1 = open("./pox/virtnetsim/" + self.virtualTopology.getName() + "-map/host-maps", 'r')
+		hostMaps = f1.readlines()
+
+		for line in hostMaps :
+			map = line.split()
+			# 0 : hostname 1 : virtual switch 2 : physical switch.
+			self.physicalTopology.addSwitch(map[1])
+			self.physicalTopology.addLinkStr(map[1], map[2], 10)
+
+		f2 = open("./pox/virtnetsim/" + self.virtualTopology.getName() + "-map/switch-maps", 'r')
+		swMaps = f2.readlines()
+
+		for line in swMaps :
+			map = line.split()
+			# 0 : hostname 1 : virtual switch 2 : physical switch.
+			self.physicalTopology.addSwitch(map[0])
+			self.physicalTopology.addLinkStr(map[0], map[1], 10)
+
+			"""
+		virtRoute = Route()
+		virtRoute.addSrcSubnet("10.0.0.0")
+		virtRoute.addDstSubnet("10.1.0.0")
+		virtRoute.addNextSwitch("s50")
+		virtRoute.addNextSwitch("s100")
+		virtRoute.addNextSwitch("s101")
+		virtRoute.addNextSwitch("s51")
+
+		phyRoute = self.physicalTopology.getCompleteRoute(virtRoute)
+		phyRoute.printRoute()
+			"""
+
+
+		
+	
+
+
+
+
+
+
+
 
 	def readFromFile(self):
 		f1 = open("./pox/virtnetsim/" + self.virtualTopology.getName() + "-map/host-maps", 'r')
@@ -57,99 +101,18 @@ class NetworkMapping(object) :
 
 
 
-class Route(object) :
-	""" This class is used to provide information of the route between two subnets with the routeTags.
-	Important Convention : The First and Last switch must have RouteTag True."""
 
-	def __init__(self):
-		self.route = [] # Store the switch sequence 
-		self.routeTags = [] # For every corresponding switch, store whether a routeTag change is required or not.
-		self.routeIndex = 0
-
-	def addSrcSubnet(self, subnet, prefixlen = 24):
-		self.srcSubnet = subnet
-		self.srcPrefixLen = prefixlen
-
-	def addDstSubnet(self, subnet, prefixlen = 24):
-		self.dstSubnet = subnet
-		self.dstPrefixLen = prefixlen
-
-	def getSrcSubnet(self):
-		return self.srcSubnet
-
-	def getDstSubnet(self):
-		return self.dstSubnet
-
-
-	def addNextSwitch(self, sw, routeTag = False):
-		self.route.append(sw)
-		self.routeTags.append(routeTag)
-
-	def printRoute(self) :
-		print "Route: " + self.srcSubnet + " -> " + self.dstSubnet
-		i = 0
-		while i < len(self.route):
-			print self.route[i] + " " + str(self.routeTags[i])
-			i += 1
-
-
-	def getFirstSwitch(self) :
-		return self.route[0]
-	
-	def getCurrentSwitch(self) : 
-		""" Increment Route Index and return switch. Not to be used for first switch. """
-		self.routeIndex += 1
-		if self.routeIndex >= len(self.route) :
-			# End of route. 
-			return None
-		else :
-			return self.route[self.routeIndex]
-
-	def getNextRouteTagSwitch(self) :
-		""" Increment Route Index and return switch with Routetag. Not to be used for first switch. """
-		self.routeIndex += 1
-		while not self.routeTags[self.routeIndex] :
-			self.routeIndex += 1
-
-		if self.routeIndex >= len(self.route) :
-			return None
-		else :
-			return self.route[self.routeIndex]
-
-
-	def getNextSwitch(self) :
-		if self.routeIndex + 1 >= len(self.route) :
-			return None
-		else :
-			return self.route[self.routeIndex + 1]
-
-	def getPrevSwitch(self) :
-		if self.routeIndex - 1 < 0 :
-			return None
-		else :
-			return self.route[self.routeIndex - 1]
-
-	def getCurrentRouteTag(self):
-		""" Returns current Route Tag. Usage to be done after calling getCurrentSwitch() """
-		if self.routeIndex >= len(self.route) :
-			# End of route.  
-			return False
-		else :
-			return self.routeTags[self.routeIndex]
-
-	def isLastSwitch(self) :
-		if self.routeIndex == len(self.route) - 1 :
-			return True
-		else :
-			return False
 
 
 """
 virtTopo = Topology("tenant1")
-NMap = NetworkMapping(virtTopo = virtTopo)
-NMap.readFromFile()
+phyTopo = Topology("phy")
+NMap = NetworkMapping(phyTopo = phyTopo, virtTopo = virtTopo)
+NMap.read()
 NMap.printMapping()
 """
+
+
 
 
 
