@@ -28,7 +28,13 @@ class NetworkMapping(object) :
 			self.physicalTopology.addSwitch(map[0])
 			self.physicalTopology.addLinkStr(map[0], map[1], 10)
 
-			"""
+
+		virtRoute = self.virtualTopology.getRoute("s50", "s51")
+		phyRoute = self.physicalTopology.getCompleteRoute(virtRoute)
+		phyRoute.printRoute()
+
+
+		"""
 		virtRoute = Route()
 		virtRoute.addSrcSubnet("10.0.0.0")
 		virtRoute.addDstSubnet("10.1.0.0")
@@ -39,14 +45,8 @@ class NetworkMapping(object) :
 
 		phyRoute = self.physicalTopology.getCompleteRoute(virtRoute)
 		phyRoute.printRoute()
-			"""
-
-
-		
-	
-
-
-
+		"""
+			
 
 
 
@@ -99,19 +99,42 @@ class NetworkMapping(object) :
 
 
 
-
-
-
-
-
-"""
 virtTopo = Topology("tenant1")
 phyTopo = Topology("phy")
 NMap = NetworkMapping(phyTopo = phyTopo, virtTopo = virtTopo)
 NMap.read()
 NMap.printMapping()
-"""
 
+
+
+class SwitchDatabase(object) :
+	""" Database to match the switch to the topology """
+
+	def __init__(self) :
+		self.switchMap = dict()
+		self.switchNumber = 1
+
+
+	def getSwitchName(self, swName, topologyName) :
+		key = topologyName + "-" + swName
+		if key in self.switchMap : 
+			return self.switchMap[key]
+		else :
+			""" Does not exist, add it in Database """
+			name = "s" + str(self.switchNumber)
+			self.switchNumber += 1
+			self.switchMap[key] = name 
+
+
+	def isPhysical(self, sw) :
+		for key in self.switchMap.keys() :
+			if self.switchMap[key] == sw and key.split("-")[0] == "phy":
+				return True
+		
+		return False
+				
+
+	
 
 
 
