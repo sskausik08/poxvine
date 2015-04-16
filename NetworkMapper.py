@@ -39,13 +39,15 @@ class NetworkMapper (EventMixin):
 		self.switchMap = dict()
 		self.switchConnections = dict()
 
+		self.swDatabase = SwitchDatabase()
+
 		# Initialize Physical Topology.
-		self.phyTopo = Topology("phy")
+		self.phyTopo = Topology("phy", self.swDatabase)
 		self.virtTopos = []
-		virtTopo = Topology("tenant1")
+		virtTopo = Topology("tenant1", self.swDatabase)
 		self.virtTopos.append(virtTopo)
-		self.networkMap = NetworkMapping(phyTopo = self.phyTopo, virtTopo = virtTopo)
-		self.networkMap.readFromFile()
+		self.networkMap = NetworkMapping(phyTopo = self.phyTopo, virtTopo = virtTopo, swDatabase = self.swDatabase)
+		self.networkMap.read()
 		self.networkMap.printMapping()
 
 		self.networkRoutes = []
@@ -54,6 +56,8 @@ class NetworkMapper (EventMixin):
 
 		#Temp
 		self.routeAdded = False
+
+		self.phyTopo.writeToFile()
 
 		
 	"""This event will be raised each time a switch will connect to the controller"""
@@ -142,7 +146,7 @@ class NetworkMapper (EventMixin):
 		while not route.isLastSwitch() : 
 			sw_next = route.getNextRouteTagSwitch()
 
-			print "Adding rule for Switch " + sw
+			print "Adding rule for Switch " + sw + " " + sw_next
 			if route.getCurrentRouteTag() :
 				self.installRouteTagRule(
 					connection = self.switchConnections[sw], 
