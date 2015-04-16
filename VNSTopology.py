@@ -13,6 +13,9 @@ class Switch(object) :
 	def getName(self) :
 		return self.name
 
+	def getFlowTableSize(self) :
+		return self.flowTableSize
+
 	def getNeighbours(self) :
 		return self.neighbours
 
@@ -25,10 +28,11 @@ class Switch(object) :
 
 class Topology(object):
 	"Class for a Topology"
-	def __init__(self, name="topo-0"):
+	def __init__(self, name, swDatabase):
 		self.name = name
 		self.racks = []
 		self.switches = dict()
+		self.swDatabase = swDatabase
 		
 		# Initialise from configuration files.
 		self.readFromFile()
@@ -96,7 +100,8 @@ class Topology(object):
 
 		for line in switches :
 			fields = line.split()
-			self.addSwitch(fields[0], int(fields[1]))
+			sw = self.swDatabase.getSwitchName(fields[0], self.name)
+			self.addSwitch(sw, int(fields[1]))
 
 
 		# Read the links
@@ -105,7 +110,27 @@ class Topology(object):
 
 		for line in links :
 			fields = line.split()
-			self.addLink(src=self.switches[fields[0]], dst=self.switches[fields[1]], bw=int(fields[2]))
+			sw1 = self.swDatabase.getSwitchName(fields[0], self.name)
+			sw2 = self.swDatabase.getSwitchName(fields[1], self.name)
+			self.addLink(src=self.switches[sw1], dst=self.switches[sw2], bw=int(fields[2]))
+
+	def writeToFile(self) :
+		f1 = open("./pox/virtnetsim/virtnetsim-mininet-files/" + self.name + "-switches", 'w')
+
+		for swName in self.switches.iterkeys() :
+			sw = self.switches[swName]
+			f1.write(sw.getName() + " " + str(sw.getFlowTableSize()) + "\n")
+
+		f2 = open("./pox/virtnetsim/virtnetsim-mininet-files/" + self.name + "-links", 'w')
+
+		for swName in self.switches.iterkeys() :
+			sw = self.switches[swName]
+			neighbours = sw.getNeighbours()	
+
+			for node in neighbours :
+				if sw.getName() < node.getName() :
+					f2.write(sw.getName() + " " + node.getName() + " 10\n")
+
 
 	def getNeighbour(self, src, dst) :
 		# Breadth First Search from src to dst.
@@ -400,8 +425,18 @@ class Route(object) :
 	def getRouteTags(self) :
 		return self.routeTags 
 
-	def setRouteTags(self) :
-		pass
+	def setRouteTags(self, swDatabase) :
+		""" Setting the route Tags """
+		i = 0
+		while i < len(self.route):
+			if i == 0 or i == len(self.route) - 1 :
+				self.routeTags[i] = True
+			elif not swDatabase.isPhysical(self.route[i]) :
+				# i - 1 and i + 1 are both physical switches
+				self.routeTags[i] = True
+				self.routeTags[i - 1] = True
+				self.routeTags[i + 1] = True
+			i = i + 1
 
 	def printRoute(self) :
 		print "Route: " + self.srcSubnet + " -> " + self.dstSubnet

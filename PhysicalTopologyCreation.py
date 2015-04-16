@@ -26,47 +26,38 @@ class PhyTopo( Topo ):
 		# Initialize topology
 		Topo.__init__( self )
 
-		# Add hosts
-		leftHost = self.addHost( 'v1', ip="10.0.0.5", prefixLen=24)
-		rightHost = self.addHost( 'v2', ip="10.1.0.5", prefixLen=24)
-		midHost = self.addHost( 'v3', ip="10.2.0.5", prefixLen=24)
 
 		#Add switches
-		f2 = open("phy/phy-switches", 'r')
-		switch_desc = f2.readlines()
-		switch_hash = dict()
+		f1 = open("./virtnetsim-mininet-files/phy-switches", 'r')
+		switch_desc = f1.readlines()
+		switchMap = dict()
 
 		for line in switch_desc:
 			lineArr = line.split()        
-			switch_hash[lineArr[0]] = self.addSwitch(lineArr[0])
+			switchMap[lineArr[0]] = self.addSwitch(lineArr[0])
 
-		switch_hash['s10'] = self.addSwitch('s10')
-		switch_hash['s20'] = self.addSwitch('s20')
-		switch_hash['s30'] = self.addSwitch('s30')
+
+		# Add hosts
+		f2 = open("./virtnetsim-mininet-files/phy-hosts", 'r')
+		host_desc = f2.readlines()
+		hostMap = dict()
+
+		for line in host_desc:
+			lineArr = line.split()    
+			hostMap[lineArr[0]] = self.addHost( lineArr[0], ip=lineArr[3], prefixLen=24)
+			self.addLink( switchMap[lineArr[4]], hostMap[lineArr[0]], bw=10) 
 
 
 		#Create the links between switches.
-		f3 = open("phy/phy-links", 'r')
+		f3 = open("./virtnetsim-mininet-files/phy-links", 'r')
 		link_desc = f3.readlines()
 
 
 		#Add Links.
 		for line in link_desc:
 			lineArr = line.split()
-			self.addLink( switch_hash[lineArr[0]],  switch_hash[lineArr[1]], bw= int(lineArr[2])) 
-
-		self.addLink( switch_hash['s1'], switch_hash['s10'], bw=10) 
-		self.addLink( switch_hash['s4'], switch_hash['s20'], bw=10)
-		self.addLink( switch_hash['s3'], switch_hash['s30'], bw=10)
-
-		self.addLink( switch_hash['s10'], leftHost, bw=10) 
-		self.addLink( switch_hash['s20'], rightHost, bw=10)
-		self.addLink( switch_hash['s30'], midHost, bw=10)
-
-
-
-		
-		
+			self.addLink( switchMap[lineArr[0]],  switchMap[lineArr[1]], bw= int(lineArr[2])) 
+	
 
 
 topos = { 'PhyTopo': ( lambda: PhyTopo() ) }
