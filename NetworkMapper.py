@@ -48,7 +48,6 @@ class NetworkMapper (EventMixin):
 		self.virtTopos.append(virtTopo)
 		self.networkMap = NetworkMapping(phyTopo = self.phyTopo, virtTopo = virtTopo, swDatabase = self.swDatabase)
 		self.networkMap.read()
-		self.networkMap.printMapping()
 
 		self.networkRoutes = []
 

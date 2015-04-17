@@ -49,7 +49,7 @@ class NetworkMapping(object) :
 					virtRoute.addDstSubnet(sw2[1])
 					phyRoute = self.physicalTopology.getCompleteRoute(virtRoute)
 					phyRoute.setRouteTags(self.swDatabase)
-					phyRoute.printRoute()
+					phyRoute.printRoute(self.swDatabase)
 
 					self.networkRoutes.append(phyRoute)	
 
@@ -156,6 +156,11 @@ class SwitchDatabase(object) :
 			self.switchMap[key] = name 
 			return name
 
+	def getSwitchKey(self, sw) :
+		for key in self.switchMap.keys() :
+			if self.switchMap[key] == sw :
+				return key
+		return "None"
 
 	def isPhysical(self, sw) :
 		for key in self.switchMap.keys() :

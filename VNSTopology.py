@@ -383,7 +383,8 @@ class Host(object):
 
 class Route(object) :
 	""" This class is used to provide information of the route between two subnets with the routeTags.
-	Important Convention : The First and Last switch must have RouteTag True."""
+	Important Convention : The First and Last switch must have RouteTag True.
+	setRouteTags function ensures the above convention"""
 
 	def __init__(self):
 		self.route = [] # Store the switch sequence 
@@ -438,12 +439,17 @@ class Route(object) :
 				self.routeTags[i + 1] = True
 			i = i + 1
 
-	def printRoute(self) :
+	def printRoute(self, swDatabase = None) :
 		print "Route: " + self.srcSubnet + " -> " + self.dstSubnet
 		i = 0
-		while i < len(self.route):
-			print self.route[i] + " " + str(self.routeTags[i])
-			i += 1
+		if swDatabase == None :
+			while i < len(self.route):
+				print self.route[i] + " " + str(self.routeTags[i])
+				i += 1
+		else :
+			while i < len(self.route):
+				print swDatabase.getSwitchKey(self.route[i]) + " " + str(self.routeTags[i])
+				i += 1
 
 
 	def getFirstSwitch(self) :
