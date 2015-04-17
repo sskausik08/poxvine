@@ -28,7 +28,7 @@ class PhyTopo( Topo ):
 
 
 		#Add switches
-		f1 = open("./virtnetsim-mininet-files/phy-switches", 'r')
+		f1 = open("phy-switches", 'r')
 		switch_desc = f1.readlines()
 		switchMap = dict()
 
@@ -38,7 +38,7 @@ class PhyTopo( Topo ):
 
 
 		# Add hosts
-		f2 = open("./virtnetsim-mininet-files/phy-hosts", 'r')
+		f2 = open("phy-hosts", 'r')
 		host_desc = f2.readlines()
 		hostMap = dict()
 
@@ -49,7 +49,7 @@ class PhyTopo( Topo ):
 
 
 		#Create the links between switches.
-		f3 = open("./virtnetsim-mininet-files/phy-links", 'r')
+		f3 = open("phy-links", 'r')
 		link_desc = f3.readlines()
 
 
