@@ -194,8 +194,8 @@ class NetworkMapper (EventMixin):
 		#Match 
 		msg.match = of.ofp_match()
 		msg.match.dl_type = ethernet.IP_TYPE
-		msg.match.set_nw_src(IPAddr(self.getSubnet(srcip, 24)), 24)
-		msg.match.set_nw_dst(IPAddr(self.getSubnet(dstip, 24)), 24)
+		msg.match.set_nw_src(IPAddr(srcip, 32), 32)
+		msg.match.set_nw_dst(IPAddr(dstip, 32), 32)
 
 		if not vlanMatch == 0 and not routeTagMatch == 0 : 
 			msg.match.dl_vlan = self.getVlanId(vlanMatch, routeTagMatch)
@@ -241,8 +241,8 @@ class NetworkMapper (EventMixin):
 		#Match 
 		msg.match = of.ofp_match()
 		msg.match.dl_type = ethernet.IP_TYPE
-		msg.match.set_nw_src(IPAddr(self.getSubnet(srcip, 24)), 24)
-		msg.match.set_nw_dst(IPAddr(self.getSubnet(dstip, 24)), 24)
+		msg.match.set_nw_src(IPAddr(srcip, 32), 32)
+		msg.match.set_nw_dst(IPAddr(dstip, 32), 32)
 
 		"""
 		if not vlan == 0 : 
@@ -280,8 +280,8 @@ class NetworkMapper (EventMixin):
 			#Match 
 			msg.match = of.ofp_match()
 			msg.match.dl_type = ethernet.IP_TYPE
-			msg.match.set_nw_src(IPAddr(self.getSubnet(srcip, 24)), 24)
-			msg.match.set_nw_dst(IPAddr(self.getSubnet(dstip, 24)), 24)
+			msg.match.set_nw_src(IPAddr(srcip, 32), 32)
+			msg.match.set_nw_dst(IPAddr(dstip, 32), 32)
 
 			
 			if not vlan == 0 : 
