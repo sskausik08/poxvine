@@ -44,8 +44,8 @@ class PhyTopo( Topo ):
 
 		for line in host_desc:
 			lineArr = line.split()    
-			hostMap[lineArr[0]] = self.addHost( lineArr[0], ip=lineArr[3], prefixLen=24)
-			self.addLink( switchMap[lineArr[4]], hostMap[lineArr[0]], bw=10) 
+			hostMap[lineArr[0]] = self.addHost( lineArr[0], ip=lineArr[2], prefixLen=24)
+			self.addLink( switchMap[lineArr[3]], hostMap[lineArr[0]], bw=10) 
 
 
 		#Create the links between switches.
