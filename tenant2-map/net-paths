@@ -1,0 +1,6 @@
+10.0.0.0 24 10.1.0.0 24 s10 t s1 f s2 f s3 f s4 t s3 f s2 f s1 t s2 f s3 f s4 f s20 t
+10.1.0.0 24 10.0.0.0 24 s20 t s4 f s3 f s2 f s1 f s10 t
+10.0.0.0 24 10.2.0.0 24 s10 t s1 f s2 f s3 f s30 t
+10.2.0.0 24 10.0.0.0 24 s30 t s3 f s4 t s3 f s2 f s1 f s10 t
+10.2.0.0 24 10.1.0.0 24 s30 t s3 f s4 t s3 f s2 f s1 t s2 f s3 f s4 f s20 t
+10.1.0.0 24 10.2.0.0 24 s20 t s4 f s3 f s30 t

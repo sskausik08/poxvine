@@ -39,19 +39,26 @@ class NetworkMapper (EventMixin):
 		self.switchMap = dict()
 		self.switchConnections = dict()
 
-		self.swDatabase = SwitchDatabase()
+		self.netDatabase = NetworkDatabase()
+		self.tenantDatabase = TenantDatabase()
 
 		# Initialize Physical Topology.
-		self.phyTopo = Topology("phy", self.swDatabase)
+		self.phyTopo = Topology("phy", self.netDatabase)
 		self.virtTopos = []
-		virtTopo = Topology("tenant1", self.swDatabase)
-		self.virtTopos.append(virtTopo)
-		self.networkMap = NetworkMapping(phyTopo = self.phyTopo, virtTopo = virtTopo, swDatabase = self.swDatabase)
-		self.networkMap.read()
+		virtTopo1 = Topology("tenant1", self.netDatabase, self.tenantDatabase.getTenantID("tenant1"))
+		self.virtTopos.append(virtTopo1)
+		networkMap1 = NetworkMapping(phyTopo = self.phyTopo, virtTopo = virtTopo1, netDatabase = self.netDatabase)
+		networkMap1.read()
+
+		virtTopo2 = Topology("tenant2", self.netDatabase, self.tenantDatabase.getTenantID("tenant2"))
+		self.virtTopos.append(virtTopo2)
+		networkMap2 = NetworkMapping(phyTopo = self.phyTopo, virtTopo = virtTopo2, netDatabase = self.netDatabase)
+		networkMap2.read()
 
 		self.networkRoutes = []
 
-		self.networkRoutes.extend(self.networkMap.getNetworkRoutes())
+		self.networkRoutes.extend(networkMap1.getNetworkRoutes())
+		self.networkRoutes.extend(networkMap2.getNetworkRoutes())
 
 		#Temp
 		self.routeAdded = False
@@ -121,10 +128,11 @@ class NetworkMapper (EventMixin):
 		return self.phyTopo.getNeighbour(src, dst)
 
 
-	def addForwardingRules(self, srcSubnet, dstSubnet, route) :
-		"This function proactively adds the forwarding rules from srcSubnet to dstSubnet."
+	def addForwardingRules(self, srcSubnet, dstSubnet, tenantID, route) :
+		"This function proactively adds the forwarding rules from srcSubnet to dstSubnet. "
+		"Subnet can be a host address as well."
 
-		currRouteTag = 2 # Start with 1. 
+		currRouteTag = 2 # Start with 2. 
 
 		# First switch
 		sw = route.getFirstSwitch()
@@ -135,7 +143,7 @@ class NetworkMapper (EventMixin):
 			connection = self.switchConnections[sw], 
 			srcip = srcSubnet, dstip = dstSubnet, 
 			srcSw = sw, dstSw = sw_next, prevSw=None,
-			vlanMatch = 0, vlanAction = 4,
+			vlanMatch = 0, vlanAction = tenantID,
 			routeTagMatch = 0, routeTagAction = currRouteTag)
 
 		
@@ -151,7 +159,7 @@ class NetworkMapper (EventMixin):
 					connection = self.switchConnections[sw], 
 					srcip = srcSubnet, dstip = dstSubnet, 
 					srcSw = sw, dstSw = sw_next, prevSw=sw_prev,
-					vlanMatch = 4, vlanAction = 0 ,
+					vlanMatch = tenantID, vlanAction = 0 ,
 					routeTagMatch = currRouteTag, routeTagAction = (currRouteTag + 1) ) 
 				currRouteTag += 1
 
@@ -166,7 +174,7 @@ class NetworkMapper (EventMixin):
 			connection = self.switchConnections[sw], 
 			srcip = srcSubnet, dstip = dstSubnet, 
 			srcSw = sw, dstSw = None, prevSw = None,
-			vlanMatch = 4 , vlanAction = -1,
+			vlanMatch = tenantID , vlanAction = -1,
 			routeTagMatch = currRouteTag, routeTagAction = 0)
 	
 
@@ -331,7 +339,7 @@ class NetworkMapper (EventMixin):
 
   				if not self.routeAdded : 
   					for route in self.networkRoutes :
-  						self.addForwardingRules(route.getSrcSubnet(), route.getDstSubnet(), route)
+  						self.addForwardingRules(route.getSrcSubnet(), route.getDstSubnet(), route.getTenantID(), route)
 	  				
 	  				
   				#switch is event.dpid

@@ -2,10 +2,10 @@ from VNSTopology import *
 class NetworkMapping(object) :
 	""" This class is used to provide the physical network paths between the subnets. """
 	
-	def __init__(self, phyTopo, virtTopo, swDatabase):
+	def __init__(self, phyTopo, virtTopo, netDatabase):
 		self.virtualTopology = virtTopo
 		self.physicalTopology = phyTopo
-		self.swDatabase = swDatabase
+		self.netDatabase = netDatabase
 		self.networkRoutes = []
 		self.hostMappings = []
 		self.endPoints = []
@@ -18,9 +18,9 @@ class NetworkMapping(object) :
 		for line in hostMaps :
 			map = line.split()
 			# 0 : hostname 1 : virtual switch 2 : physical switch.
-			sw1 = self.swDatabase.getSwitchName(map[1], self.virtualTopology.getName())
+			sw1 = self.netDatabase.getSwitchName(map[1], self.virtualTopology.getName())
 			self.physicalTopology.addSwitch(sw1)
-			sw2 = self.swDatabase.getSwitchName(map[2], self.physicalTopology.getName())
+			sw2 = self.netDatabase.getSwitchName(map[2], self.physicalTopology.getName())
 			self.physicalTopology.addLinkStr(sw1, sw2, 10)
 
 			self.endPoints.append([sw1, map[0]])
@@ -32,11 +32,10 @@ class NetworkMapping(object) :
 		for line in swMaps :
 			map = line.split()
 			# 0 : hostname 1 : virtual switch 2 : physical switch.
-			sw1 = self.swDatabase.getSwitchName(map[0], self.virtualTopology.getName())
+			sw1 = self.netDatabase.getSwitchName(map[0], self.virtualTopology.getName())
 			self.physicalTopology.addSwitch(sw1)
-			sw2 = self.swDatabase.getSwitchName(map[1], self.physicalTopology.getName())
+			sw2 = self.netDatabase.getSwitchName(map[1], self.physicalTopology.getName())
 			self.physicalTopology.addLinkStr(sw1, sw2, 10)
-
 
 
 		# Get Routes between end Points. 
@@ -48,14 +47,15 @@ class NetworkMapping(object) :
 					virtRoute.addSrcSubnet(sw1[1])
 					virtRoute.addDstSubnet(sw2[1])
 					phyRoute = self.physicalTopology.getCompleteRoute(virtRoute)
-					phyRoute.setRouteTags(self.swDatabase)
-					phyRoute.printRoute(self.swDatabase)
-
+					phyRoute.setRouteTags(self.netDatabase)
+					phyRoute.printRoute(self.netDatabase)
 					self.networkRoutes.append(phyRoute)	
 
 
-
-
+		# Add hosts to the physical topology. 
+		hosts = self.virtualTopology.getHosts()
+		for host in hosts.itervalues() :
+			self.physicalTopology.addHost(host)
 
 
 		#virtRoute = self.virtualTopology.getRoute("s50", "s51")
@@ -137,13 +137,14 @@ NMap.printMapping()
 
 
 
-class SwitchDatabase(object) :
+class NetworkDatabase(object) :
 	""" Database to match the switch to the topology """
 
 	def __init__(self) :
 		self.switchMap = dict()
 		self.switchNumber = 1
-
+		self.hostMap = dict()
+		self.hostNumber = 1
 
 	def getSwitchName(self, swName, topologyName) :
 		key = topologyName + "-" + swName
@@ -162,12 +163,53 @@ class SwitchDatabase(object) :
 				return key
 		return "None"
 
+	def getHostName(self, hostName, topologyName) :
+		key = topologyName + "-" + hostName
+		if key in self.hostMap : 
+			return self.hostMap[key]
+		else :
+			""" Does not exist, add it in Database """
+			name = "h" + str(self.hostNumber)
+			self.hostNumber += 1
+			self.hostMap[key] = name 
+			return name
+
+	def getHostKey(self, host) :
+		for key in self.hostMap.keys() :
+			if self.hostMap[key] == host :
+				return key
+		return "None"
+
 	def isPhysical(self, sw) :
 		for key in self.switchMap.keys() :
 			if self.switchMap[key] == sw and key.split("-")[0] == "phy":
 				return True
 		
 		return False
+
+class TenantDatabase(object) :
+	""" Database to store Tenant Properties """
+
+	def __init__(self) :
+		self.tenantMap = dict()
+		self.tenantNumber = 1
+
+
+	def getTenantID(self, tenantName) :
+		if tenantName in self.tenantMap : 
+			return self.tenantMap[tenantName]
+		else :
+			""" Does not exist, add it in Database """
+			self.tenantMap[tenantName] = self.tenantNumber 
+			self.tenantNumber += 1
+			return self.tenantNumber - 1
+
+	def getTenantName(self, tenantID) :
+		for key in self.tenantMap.keys() :
+			if self.tenantMap[key] == tenantID :
+				return key
+		return "None"
+
 				
 
 	

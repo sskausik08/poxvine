@@ -28,11 +28,13 @@ class Switch(object) :
 
 class Topology(object):
 	"Class for a Topology"
-	def __init__(self, name, swDatabase):
+	def __init__(self, name, netDatabase, tenantID = 0):
 		self.name = name
 		self.racks = []
 		self.switches = dict()
-		self.swDatabase = swDatabase
+		self.hosts = dict()
+		self.tenantID = tenantID
+		self.netDatabase = netDatabase
 		
 		# Initialise from configuration files.
 		self.readFromFile()
@@ -83,6 +85,16 @@ class Topology(object):
 		sw = Switch(name, size)
 		self.switches[name] = sw
 
+	def createHost(self, name, capacity, ip, sw) :
+		h = Host(name = name, ip = ip, capacity = capacity)
+		h.setSwitch(sw)
+		self.hosts[name] = h
+
+	def addHost(self, host) :
+		self.hosts[host.getName()] = host
+
+	def getHosts(self) :
+		return self.hosts
 
 	def addLink(self, src, dst, bw) :
 		src.addLink(dst,bw)
@@ -100,18 +112,28 @@ class Topology(object):
 
 		for line in switches :
 			fields = line.split()
-			sw = self.swDatabase.getSwitchName(fields[0], self.name)
+			sw = self.netDatabase.getSwitchName(fields[0], self.name)
 			self.addSwitch(sw, int(fields[1]))
 
+		# Read the Hosts for virtual topologies.
+		if not self.name == "phy" :
+	 		f2 = open("./pox/virtnetsim/" + self.name + "/" + self.name + "-hosts", 'r')
+			hosts = f2.readlines()
+
+			for line in hosts :
+				fields = line.split()
+				sw = self.netDatabase.getSwitchName(fields[4], self.name)
+				hostName = self.netDatabase.getHostName(fields[0], self.name)
+				self.createHost(hostName, int(fields[2]), fields[3], self.switches[sw])
 
 		# Read the links
-		f2 = open("./pox/virtnetsim/" + self.name + "/" + self.name + "-links", 'r')
-		links = f2.readlines()
+		f3 = open("./pox/virtnetsim/" + self.name + "/" + self.name + "-links", 'r')
+		links = f3.readlines()
 
 		for line in links :
 			fields = line.split()
-			sw1 = self.swDatabase.getSwitchName(fields[0], self.name)
-			sw2 = self.swDatabase.getSwitchName(fields[1], self.name)
+			sw1 = self.netDatabase.getSwitchName(fields[0], self.name)
+			sw2 = self.netDatabase.getSwitchName(fields[1], self.name)
 			self.addLink(src=self.switches[sw1], dst=self.switches[sw2], bw=int(fields[2]))
 
 	def writeToFile(self) :
@@ -130,6 +152,13 @@ class Topology(object):
 			for node in neighbours :
 				if sw.getName() < node.getName() :
 					f2.write(sw.getName() + " " + node.getName() + " 10\n")
+
+		
+		f3 = open("./pox/virtnetsim/virtnetsim-mininet-files/" + self.name + "-hosts", 'w')
+
+		for hostName in self.hosts.iterkeys() :
+			host = self.hosts[hostName]
+			f3.write(host.getName() + " " + str(host.capacity()) + " " + host.getIP() + " " + host.getSwitch().getName() + "\n")
 
 
 	def getNeighbour(self, src, dst) :
@@ -180,6 +209,7 @@ class Topology(object):
 		route.addNextSwitch(srcSw.getName())
 		route.reverse()
 
+		route.setTenantID(self.tenantID)
 		return route
 
 	def getCompleteRoute(self, route):
@@ -188,6 +218,7 @@ class Topology(object):
 		completeRoute = Route()
 		completeRoute.addSrcSubnet(route.getSrcSubnet())
 		completeRoute.addDstSubnet(route.getDstSubnet())
+		completeRoute.setTenantID(route.getTenantID())
 		sw = route.getFirstSwitch()
 		sw_next = route.getCurrentSwitch()
 
@@ -204,9 +235,6 @@ class Topology(object):
 			sw = sw_next
 
 		return completeRoute
-
-
-
 
 
 
@@ -380,6 +408,19 @@ class Host(object):
 	def isMapped(self) :
 		return self.isMappedFlag
 
+	def getName(self) :
+		return self.name
+
+	def getIP(self) :
+		return self.ip
+
+	def getSwitch(self) :
+		return self.switch
+
+	def setSwitch(self, sw) :
+		# Switch connected to host.
+		self.switch = sw
+
 
 class Route(object) :
 	""" This class is used to provide information of the route between two subnets with the routeTags.
@@ -390,7 +431,7 @@ class Route(object) :
 		self.route = [] # Store the switch sequence 
 		self.routeTags = [] # For every corresponding switch, store whether a routeTag change is required or not.
 		self.routeIndex = 0
-
+		self.tenantID = 0
 		self.srcSubnet = "0.0.0.0"
 		self.dstSubnet = "0.0.0.0"
 
@@ -407,6 +448,12 @@ class Route(object) :
 
 	def getDstSubnet(self):
 		return self.dstSubnet
+
+	def getTenantID(self) :
+		return self.tenantID
+
+	def setTenantID(self, tenantID) :
+		self.tenantID = tenantID
 
 	def addNextSwitch(self, sw, routeTag = False):
 		self.route.append(sw)
@@ -426,29 +473,29 @@ class Route(object) :
 	def getRouteTags(self) :
 		return self.routeTags 
 
-	def setRouteTags(self, swDatabase) :
+	def setRouteTags(self, netDatabase) :
 		""" Setting the route Tags """
 		i = 0
 		while i < len(self.route):
 			if i == 0 or i == len(self.route) - 1 :
 				self.routeTags[i] = True
-			elif not swDatabase.isPhysical(self.route[i]) :
+			elif not netDatabase.isPhysical(self.route[i]) :
 				# i - 1 and i + 1 are both physical switches
 				self.routeTags[i] = True
 				self.routeTags[i - 1] = True
 				self.routeTags[i + 1] = True
 			i = i + 1
 
-	def printRoute(self, swDatabase = None) :
-		print "Route: " + self.srcSubnet + " -> " + self.dstSubnet
+	def printRoute(self, netDatabase = None) :
+		print "Tenant " + str(self.tenantID) + " Route: " + self.srcSubnet + " -> " + self.dstSubnet 
 		i = 0
-		if swDatabase == None :
+		if netDatabase == None :
 			while i < len(self.route):
 				print self.route[i] + " " + str(self.routeTags[i])
 				i += 1
 		else :
 			while i < len(self.route):
-				print swDatabase.getSwitchKey(self.route[i]) + " " + str(self.routeTags[i])
+				print netDatabase.getSwitchKey(self.route[i]) + " " + str(self.routeTags[i])
 				i += 1
 
 
