@@ -16,6 +16,9 @@ class Switch(object) :
 	def getFlowTableSize(self) :
 		return self.flowTableSize
 
+	def setFlowTableSize(self, size):
+		self.flowTableSize = size
+
 	def getNeighbours(self) :
 		return self.neighbours
 
@@ -85,6 +88,12 @@ class Topology(object):
 		sw = Switch(name, size)
 		self.switches[name] = sw
 
+	def getSwitch(self, name) :
+		return self.switches[name]
+
+	def getSwitches(self) :
+		return self.switches
+
 	def createHost(self, name, capacity, ip, sw) :
 		h = Host(name = name, ip = ip, capacity = capacity)
 		h.setSwitch(sw)
@@ -116,15 +125,14 @@ class Topology(object):
 			self.addSwitch(sw, int(fields[1]))
 
 		# Read the Hosts for virtual topologies.
-		if not self.name == "phy" :
-	 		f2 = open("./pox/virtnetsim/" + self.name + "/" + self.name + "-hosts", 'r')
-			hosts = f2.readlines()
+ 		f2 = open("./pox/virtnetsim/" + self.name + "/" + self.name + "-hosts", 'r')
+		hosts = f2.readlines()
 
-			for line in hosts :
-				fields = line.split()
-				sw = self.netDatabase.getSwitchName(fields[4], self.name)
-				hostName = self.netDatabase.getHostName(fields[0], self.name)
-				self.createHost(hostName, int(fields[2]), fields[3], self.switches[sw])
+		for line in hosts :
+			fields = line.split()
+			sw = self.netDatabase.getSwitchName(fields[4], self.name)
+			hostName = self.netDatabase.getHostName(fields[0], self.name)
+			self.createHost(hostName, int(fields[2]), fields[3], self.switches[sw])
 
 		# Read the links
 		f3 = open("./pox/virtnetsim/" + self.name + "/" + self.name + "-links", 'r')

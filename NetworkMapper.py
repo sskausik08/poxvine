@@ -20,8 +20,10 @@ from pox.lib.util import dpidToStr
 from pox.lib.addresses import IPAddr, EthAddr
 from collections import namedtuple
 import os 
+import sys
 from NetworkMapping import * 
 from VNSTopology import Topology
+from MinSwitchMapper import *
 
 log = core.getLogger()
 
@@ -46,6 +48,13 @@ class NetworkMapper (EventMixin):
 		self.phyTopo = Topology("phy", self.netDatabase)
 		self.virtTopos = []
 		virtTopo1 = Topology("tenant1", self.netDatabase, self.tenantDatabase.getTenantID("tenant1"))
+
+
+		mapper = MinSwitchMapper(self.phyTopo, virtTopo1, self.netDatabase, self.tenantDatabase)
+		mapper.findHostMapping()
+		sys.exit()
+		
+
 		self.virtTopos.append(virtTopo1)
 		networkMap1 = NetworkMapping(phyTopo = self.phyTopo, virtTopo = virtTopo1, netDatabase = self.netDatabase)
 		networkMap1.read()
@@ -85,7 +94,6 @@ class NetworkMapper (EventMixin):
 
 		self.switchMap[switchName] = dpid
 		self.switchConnections[switchName] = event.connection
-
 
 
 	def findSwitchName(self, dpid) :
