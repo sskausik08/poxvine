@@ -3,6 +3,7 @@ class Switch(object) :
 		self.name = name
 		self.flowTableSize=size
 		self.neighbours = []
+		self.isMappedFlag = False
 
 		# Used for routing.
 		self.parent = None
@@ -27,6 +28,12 @@ class Switch(object) :
 
 	def setParent(self, parent) :
 		self.parent = parent
+
+	def isMapped(self) :
+		return self.isMappedFlag
+
+	def setMapped(self) :
+		self.isMappedFlag = True
 
 
 class Topology(object):
@@ -383,6 +390,9 @@ class Host(object):
 		print "Mapping on the host are ->"
 		for vm in self.committedVMList :
 			vm.display()
+
+	def getMappedVMs(self) :
+		return self.committedVMList
 
 	def capacityLeft(self) :
 		return self.uncommittedRemainingCapacity

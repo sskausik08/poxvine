@@ -52,22 +52,23 @@ class NetworkMapper (EventMixin):
 
 		mapper = MinSwitchMapper(self.phyTopo, virtTopo1, self.netDatabase, self.tenantDatabase)
 		mapper.findHostMapping()
-		sys.exit()
 		
 
 		self.virtTopos.append(virtTopo1)
 		networkMap1 = NetworkMapping(phyTopo = self.phyTopo, virtTopo = virtTopo1, netDatabase = self.netDatabase)
 		networkMap1.read()
 
+		"""
 		virtTopo2 = Topology("tenant2", self.netDatabase, self.tenantDatabase.getTenantID("tenant2"))
 		self.virtTopos.append(virtTopo2)
 		networkMap2 = NetworkMapping(phyTopo = self.phyTopo, virtTopo = virtTopo2, netDatabase = self.netDatabase)
 		networkMap2.read()
+		"""
 
 		self.networkRoutes = []
 
 		self.networkRoutes.extend(networkMap1.getNetworkRoutes())
-		self.networkRoutes.extend(networkMap2.getNetworkRoutes())
+		#self.networkRoutes.extend(networkMap2.getNetworkRoutes())
 
 		#Temp
 		self.routeAdded = False

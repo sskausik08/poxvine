@@ -9,6 +9,7 @@
 ###################################
 
 import copy
+import random
 from VNSTopology import *
 from NetworkMapping import NetworkDatabase, TenantDatabase
 
@@ -89,6 +90,35 @@ class MinSwitchMapper(object) :
 		for host in hosts :
 			host.displayMapping() 
 
+	def writeMappingToFile(self, hosts) :
+		# Host Map
+
+		f1 = open("./pox/virtnetsim/" + self.virtualTopology.getName() + "-map/host-maps", 'w')
+		for host in hosts :
+			vms = host.getMappedVMs()
+			sw = host.getSwitch()
+			
+			for vm in vms :
+				vm.getSwitch().setMapped()
+				f1.write(vm.getIP() + " " + self.netDatabase.getSwitchKey(vm.getSwitch().getName()).split("-")[1] + " " + self.netDatabase.getSwitchKey(sw.getName()).split("-")[1] +"\n")
+
+
+		# switch Map. Distribute switches randomly across the hosts.
+		f2 = open("./pox/virtnetsim/" + self.virtualTopology.getName() + "-map/switch-maps", 'w')
+		switches = self.virtualTopology.getSwitches() 
+		
+		for sw in switches.itervalues() :
+			if not sw.isMapped() :
+				n = random.randint(0, len(hosts) - 1)
+				hostsw = hosts[n].getSwitch()
+				f2.write(self.netDatabase.getSwitchKey(sw.getName()).split("-")[1] + " " + self.netDatabase.getSwitchKey(hostsw.getName()).split("-")[1] + "\n")
+
+
+
+
+
+
+
 	def findHostMapping(self) :
 		" Map virtual hosts to physical hosts "
 
@@ -121,6 +151,7 @@ class MinSwitchMapper(object) :
 						host.mapVM(vhost)
 					host.commitMappedVM()
 					host.displayMapping()
+					self.writeMappingToFile([host])
 					return True
 				
 				swlist1.append(sw.getName())
@@ -149,6 +180,7 @@ class MinSwitchMapper(object) :
 						if ret == True:
 							print "mapping done"
 							self.displayMapping(hosts)
+							self.writeMappingToFile(hosts)
 							return
 
 					# Update neighbours and put neighbours in list
@@ -176,30 +208,4 @@ class MinSwitchMapper(object) :
 				for h in hosts :
 					print h.getName(),
 				
-
-
-
-
-
-
-				
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-		
-
-
 
