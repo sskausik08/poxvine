@@ -59,8 +59,32 @@ class MinSwitchMapper(object) :
 
 	def commitMapping(self, hosts) :
 		""" Commit the pending mappings on each of the hosts. """
+
+		unusedHosts = []
 		for host in hosts :
 			host.commitMappedVM()
+
+			# Commit Mappings on the physical topology.
+			vms = host.getMappedVMs()
+
+			phyhost = self.physicalTopology.getHost(host.getName())
+			vmCount = 0
+			for vm in vms:
+				if vm.getTenantID() == self.virtualTopology.getTenantID() :
+					phyhost.mapVM(vm)
+					vmCount += 1
+
+
+			if vmCount == 0:
+				# Host does not have any vms committed of this virtual topo. Remove from hosts.
+				unusedHosts.append(host)
+				
+			else :
+				phyhost.commitMappedVM()  # Changed the physical topology mapping.
+
+		for h in unusedHosts :
+			hosts.remove(h)
+
 
 	def resetMapping(self, hosts) :
 		""" Reset the pending mappings on each of the hosts. """
@@ -90,7 +114,7 @@ class MinSwitchMapper(object) :
 		for host in hosts :
 			host.displayMapping() 
 
-	def writeMappingToFile(self, hosts) :
+	def writeMappingToFile(self, hosts, vhosts) :
 		# Host Map
 
 		f1 = open("./pox/virtnetsim/" + self.virtualTopology.getName() + "-map/host-maps", 'w')
@@ -99,8 +123,9 @@ class MinSwitchMapper(object) :
 			sw = host.getSwitch()
 			
 			for vm in vms :
-				vm.getSwitch().setMapped()
-				f1.write(vm.getIP() + " " + self.netDatabase.getSwitchKey(vm.getSwitch().getName()).split("-")[1] + " " + self.netDatabase.getSwitchKey(sw.getName()).split("-")[1] +"\n")
+				if vm.getTenantID() == self.virtualTopology.getTenantID() : 
+					vm.getSwitch().setMapped()
+					f1.write(vm.getIP() + " " + self.netDatabase.getSwitchKey(vm.getSwitch().getName()).split("-")[1] + " " + self.netDatabase.getSwitchKey(sw.getName()).split("-")[1] +"\n")
 
 
 		# switch Map. Distribute switches randomly across the hosts.
@@ -116,9 +141,6 @@ class MinSwitchMapper(object) :
 
 
 
-
-
-
 	def findHostMapping(self) :
 		" Map virtual hosts to physical hosts "
 
@@ -128,7 +150,6 @@ class MinSwitchMapper(object) :
 		vhostsCapacity = self.findTotalCapacity(vhosts)
 
 		if vhostsCapacity > self.findTotalCapacity(phosts) :
-			print str(vhostsCapacity) + " " + str(self.findTotalCapacity(phosts))
 			# Not enough capacity.
 			print "Insufficient capacity"
 		
@@ -146,12 +167,10 @@ class MinSwitchMapper(object) :
 				else :	
 					self.switchMap[sw.getName()] =  [host]
 				if host.capacityLeft() > vhostsCapacity :
-					print "mapping possible on this host itself."
 					for vhost in vhosts.itervalues() :
 						host.mapVM(vhost)
 					host.commitMappedVM()
-					host.displayMapping()
-					self.writeMappingToFile([host])
+					self.writeMappingToFile([host], vhosts)
 					return True
 				
 				swlist1.append(sw.getName())
@@ -172,15 +191,9 @@ class MinSwitchMapper(object) :
 						totalcap += h.capacityLeft()
 
 					if totalcap >= vhostsCapacity :
-						print "Mapping possible on " + sw.getName() + ":"
-						for h in hosts :
-							print h.getName(),
-
 						ret = self.mapHosts(vhosts, hosts)
 						if ret == True:
-							print "mapping done"
-							self.displayMapping(hosts)
-							self.writeMappingToFile(hosts)
+							self.writeMappingToFile(hosts, vhosts)
 							return
 
 					# Update neighbours and put neighbours in list
@@ -200,12 +213,5 @@ class MinSwitchMapper(object) :
 
 				swlist1 = swlist2
 				swlist2 = []
-
-
-			for swname in self.switchMap.iterkeys() :
-				hosts = self.switchMap[swname]
-				print "\n" + swname + ":"
-				for h in hosts :
-					print h.getName(),
 				
 

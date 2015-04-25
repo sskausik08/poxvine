@@ -60,14 +60,7 @@ class Topology(object):
 			if rack.getName() == rackName  :
 				return rack
 		return None
-
-	def getHost(self, hostName) :
-		for rack in self.racks :
-			host = rack.getHost(hostName)
-			if not host == None :
-				return host
-		return None
-
+		
 	def display(self) :
 		print "Topology " + self.name + ":"
 		for rack in self.racks :
@@ -101,13 +94,23 @@ class Topology(object):
 	def getSwitches(self) :
 		return self.switches
 
+	def getTenantID(self) :
+		return self.tenantID
+
 	def createHost(self, name, capacity, ip, sw) :
 		h = Host(name = name, ip = ip, capacity = capacity)
+		h.setTenantID(self.tenantID)
 		h.setSwitch(sw)
 		self.hosts[name] = h
 
 	def addHost(self, host) :
 		self.hosts[host.getName()] = host
+
+	def getHost(self, hostName) :
+		if hostName in self.hosts :
+			return self.hosts[hostName]
+		else :
+			return None
 
 	def getHosts(self) :
 		return self.hosts
@@ -380,6 +383,7 @@ class Host(object):
 		self.committedVMList = []
 		self.uncommittedVMList = []
 		self.isMappedFlag = False
+		self.tenantID = 0
 
 	def display(self) :
 		print(self.name + " " + str(self.totalCapacity) + " " + str(self.committedRemainingCapacity) + " " + str(self.uncommittedRemainingCapacity)) 
@@ -438,6 +442,12 @@ class Host(object):
 	def setSwitch(self, sw) :
 		# Switch connected to host.
 		self.switch = sw
+
+	def setTenantID(self, tenantID) :
+		self.tenantID = tenantID
+
+	def getTenantID(self) :
+		return self.tenantID
 
 
 class Route(object) :
