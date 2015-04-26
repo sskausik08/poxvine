@@ -1,1 +1,10 @@
 \chapter{System Design}
+POXVine consists of three main components.
+\begin{itemize}
+	\item The \emph{host mapper} is responsible to map the virtual network entities (hosts and switches) onto the physical topology. This mapping can be done based on different heuristics, so POXVine allows you to customize the host mapper. We have developed a host mapper \emph{MinSwitchMapper}, which tries to minimize the number of \emph{physical switches} which contain rules to the virtual topology.
+	
+	\item The \emph{network Mapper} is an application built over the \emph{POX} controller which uses the \emph{virtual-to-network} mappings to add the required routing OpenFlow rules on the mininet switches, so that the virtual hosts can talk to one other. Another important design consideration is that the \emph{virtual network abstraction} must be preserved, that is, if a packet is to flow across a route in the virtual topology, on the physical topology, it must traverse the virtual network entities in the same order.
+	
+	\item The \emph{Mininet} infrastructure
+	
+\end{itemize}  

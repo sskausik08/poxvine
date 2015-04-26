@@ -1,4 +1,4 @@
-ph1 vsub1 100 10.0.0.5 s1
+ph1 vsub1 10 10.0.0.5 s1
 ph2 vsub2 10 10.1.0.5 s1
 ph3 vsub3 20 10.2.0.5 s4
 ph4 vsub4 20 10.3.0.5 s9

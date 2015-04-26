@@ -1,3 +1,13 @@
 \chapter{Introduction}
 
-Introduction
+\section{Software Defined Networks}
+Software defined Networks is an emerging architecture which provides a framework to manage network services through the abstraction of lower level functionality. In SDNs, the \emph{control plane} which makes the decision of where to send traffic is decoupled from the \emph{data plane}, which performs the actual forwarding of traffic. The advantages of SDN over traditional network architectures are listed below.
+\begin{itemize}
+	\item \textit{Central State} : The entire state of the network and name bindings exist in a central location, called the controller. All inputs from the network are passed to the controller, which decides the policy needs to be implemented. 
+	\item \textit{Decoupled Control and Forwarding} : In SDNs, the control plane is separated from the data plane. The controller performs the route computation and push the forwarding rules to the switches. The switches perform the forwarding of packets. 
+	\item \textit{Software Controller} : In SDNs, the controller is implemented in software, so can be modified to implement any kind of policy. The switches perform basic forwarding and expose a common API for the controller to talk to them. Because the control plane is in software, changes in network protocols and services are easier to implement without a major hardware overhaul. 
+\end{itemize}
+
+\section{POX}
+
+\section{Network emulation using Mininet}
