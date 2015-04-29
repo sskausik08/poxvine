@@ -54,8 +54,23 @@ Therefore, the rules added at $s3$ cannot differentiate these three kind of flow
 	$Match$ : IP Src=$v1$ $|$ IP Dst=$v2$ $|$ RouteTag=1 \\
 	$Action$ : Output=$vs1$ $|$ RouteTag=2 \\
 	
-	$Match$ : IP Src= $v1$ $|$ IP Dst= $v2$ $|$ RouteTag = 1 $|$ $Action$ : Output=$vs1$ $|$ RouteTag = 2
+	$Match$ : IP Src= $v1$ $|$ IP Dst= $v2$ $|$ RouteTag = 2 \\
+	$Action$ : Output=$s2$ $|$ RouteTag = 3
+	
+	$Match$ : IP Src= $v1$ $|$ IP Dst= $v2$ $|$ RouteTag = 3 \\
+	$Action$ : Output=$v2$ 
 \end{center}
+Thus, we identify straight paths in the network route and assign a Route Tag for each of them, thus the switch can distinguish which
+part of the network route the packet is in. We will look at Route Tag calculation in the next chapter.
+
+\subsection {Switch Tunnelling} 
+As seen in the previous example, we know that $s3$ needs to have three different rules for the different Route Tag 
+packets. Let us consider switch $s2$. Adding three different rules for $s2$ is wasteful, as for $s2$, the route tag is 
+of no importance. It just sends packets from $s1$ to $s3$ and $s3$ to $s1$. Inspired from \cite{simple}, we establish
+switch tunnels in the network. 
+
+
+
 
 
 
