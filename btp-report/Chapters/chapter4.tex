@@ -39,7 +39,7 @@ The \emph{NetworkMapper} module is an application built on top of the POX contro
 \end{figure}
 Consider the two virtual hosts \emph{v1} and \emph{v2}, connected by the following path  in the virtual topology.
 \begin{center}
-	$v1 \rightarrow s1 \rightarrow s2 \rightarrow v2 $
+	$v1 \rightarrow vs1 \rightarrow vs2 \rightarrow v2 $
 \end{center}
 
 Consider the mapping as shown in Figure 2.3. The path taken by a packet from $v1$ to $v2$ must go to $vs1$, then $vs2$ then $v2$. At switch s3, we need three different rules for this packet. 
@@ -50,13 +50,13 @@ Consider the mapping as shown in Figure 2.3. The path taken by a packet from $v1
 \end{enumerate}
 Therefore, the rules added at $s3$ cannot differentiate these three kind of flows using just the IP headers. For this, we incorporate \emph{RouteTags} in the packet header \cite{simple}. In our case, the VLAN ID header field is used to store both the \emph{tenant ID} and the \emph{RouteTag}. Using the RouteTag, we can differentiate which part of the route the packet is in. Listing an example of the rules on switch $s3$. 
 \begin{center}
-	Rule 1-> \\
+	Rule 1 $\rightarrow$ \\
 	$Match$ : IP Src=$v1$ $|$ IP Dst=$v2$ $|$ RouteTag=1 \\
 	$Action$ : Output=$vs1$ $|$ RouteTag=2 \\
-	
+	Rule 2 $\rightarrow$ \\
 	$Match$ : IP Src= $v1$ $|$ IP Dst= $v2$ $|$ RouteTag = 2 \\
-	$Action$ : Output=$s2$ $|$ RouteTag = 3
-	
+	$Action$ : Output=$s2$ $|$ RouteTag = 3 \\
+	Rule 3 $\rightarrow$ \\
 	$Match$ : IP Src= $v1$ $|$ IP Dst= $v2$ $|$ RouteTag = 3 \\
 	$Action$ : Output=$v2$ 
 \end{center}
@@ -67,7 +67,23 @@ part of the network route the packet is in. We will look at Route Tag calculatio
 As seen in the previous example, we know that $s3$ needs to have three different rules for the different Route Tag 
 packets. Let us consider switch $s2$. Adding three different rules for $s2$ is wasteful, as for $s2$, the route tag is 
 of no importance. It just sends packets from $s1$ to $s3$ and $s3$ to $s1$. Inspired from \cite{simple}, we establish
-switch tunnels in the network. 
+switch tunnels in the network.  Thus, if we divide the physical network route into \emph{segments} (where the start and end of each segment is connected to a virtual entity), then the switches in the middle of the segment do not need fine grained rules, they need to route the packet to the end-switch of the segment. \\
+
+Thus, the NetworkMapper adds routing rules for every other switch on each switch. At the start of each \emph{segment}, the rules added modify the source MAC address (unused field for the POXVine system) to indicate the end-switch of the segment. The switches in the middle will just route the packet to that switch. Revisiting the example in Figure 2.3, switch $s1$ will have the following rule. 
+\begin{center}
+	$Match$ : IP Src=$v1$ $|$ IP Dst=$v2$ \\
+	$Action$ : Output=$s2$ $|$ RouteTag=1 $|$ MAC Src=$s3$\\
+\end{center}
+
+Switch $s2$ will have switch tunnel rules to switch $s1$ and $s3$. 
+\begin{center}
+	Rule 1 $\rightarrow$\\
+	$Match$ : MAC Src=$s3$ \\
+	$Action$ : Output=$s3's\ Port\ Number$ \\
+	Rule 2 $\rightarrow$\\
+	$Match$ : MAC Src=$s1$ \\
+	$Action$ : Output=$s1's\ Port\ Number$ \\	
+\end{center}
 
 
 
