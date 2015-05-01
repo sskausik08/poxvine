@@ -23,7 +23,7 @@ All the virtual network entities are mapped to physical hosts, which are connect
 \begin{figure}
 	\noindent
 	\makebox[\textwidth]{\includegraphics[width=17cm]{Figures/networkg.png}}%
-	\caption{POXVine Architecture}
+	\caption{Example of the Network Graph Heuristic. (A) shows the physical network topology. Suppose if the virtual hosts are mapped to the hosts as shown in (A). The network graph consisting of shortest paths to all the hosts are shown in (B)}
 \end{figure}
 
 We have developed \emph{MinSwitchMapper}, which minimises the diameter of the network graph connecting the hosts of the virtual topology, The basis for this heuristic is that the traffic of this tenant's hosts are confined to the \emph{smallest portion} in the physical topology. This also minimises the number of switches where rules regarding this virtual topology is installed, thus increasing the number of tenants we can accomodate in POXVine (provided the physical host capacity is not insufficient)
@@ -85,6 +85,8 @@ Switch $s2$ will have switch tunnel rules to switch $s1$ and $s3$.
 	$Action$ : Output=$s1's\ Port\ Number$ \\	
 \end{center}
 
+\section{Mininet Infrastructure Creator}
+POXVine uses Mininet to create a \emph{emulated} physical/virtual topology as per the specifications. From the topology configurations and the virtual-to-physical mappings, a hybrid topology configuration is created for the Mininet Infrastructure Creator, which comprises of all the physical topology's switches and links, and according to the virtual-to-physical mappings, the virtual hosts and switches connected to the corresponding physical switches. We do not create the physical hosts in Mininet. Future versions of POXVine can run the virtual hosts and switches on real 'physical' hosts.
 
 
 

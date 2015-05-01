@@ -95,3 +95,6 @@ hs_err_pid*
 *.out
 *.synctex.gz
 
+# Mac Tmp Files
+*.DS_Store
+*main.pdf.xml
