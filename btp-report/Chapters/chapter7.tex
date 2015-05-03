@@ -1,1 +1,13 @@
-\chapter{Conclusion}
+\chapter{Future Work}
+\begin{itemize}
+	\item \emph{Providing minimum bandwidth guarantees to tenants}. One of the most important requirement for multi-tenant cloud services is providing certain bandwidth guarantees. We can analyse different bandwidth allocation schemes, and tenants can emulate the network and estimate their performance with respect to the provided bandwidth guarantees. Providing \emph{bandwidth guarantees}(\cite{secondnet}, \cite{oktopus}) is one of the hottest problems in the cloud. 
+	
+	\item \emph{ARP Packet Handling}. The ARP packets are not needed for communication between virtual hosts. For now, we have applied a \emph{ad-hoc} approach of flooding packets across the network, which will lead to wasteful congestion of the network. The approach is to build a ARP handler as a POX application which sends the \emph{ARP reply} to the \emph{ARP responses}. 
+	
+	\item \emph{Handling Link and Switch Failures} In real life networks, links and switches keep on failing. Thus, the NetworkMapper must be dynamic to these failures and calculate and install new forwarding rules to maintain the \emph{virtual network abstraction}.
+	
+	\item \emph{Running actual hosts and routers for virtual networks}. Presently, we emulate the virtual network using Mininet's hosts and Open VSwitches for routers. An extension is to be able to plug in software elements (like VMs and software routers)  to the Mininet backbone. This can help tenants test network configurations for correctness.  
+	
+	\item \emph{Network Testing as a  Cloud Service}. Many enterprises want to test out new networks before deployment for correctness, resource requirements, and so on. Developing POXVine as a cloud service can be extremely useful for enterprises who need not be concerned with operations related to network testing. Also, by designing a multi-tenant emulator, multiple tenants can share POXVine's resources, thus, we need not provision resources for each tenant (the benefit of cloud computing).
+\end{itemize}
+

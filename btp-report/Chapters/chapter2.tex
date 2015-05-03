@@ -1,1 +1,28 @@
 \chapter{Problem Description}
+With the advent of software-defined networks, data-centers allow \emph{tenants} its own network topology and control over the flow of its traffic. The mapping of virtual to physical topologies can be done with respect to various parameters, allowing efficient resource utilisation of the data-center. \\
+Another use of network virtualization is that tenants can do a test-run of a network before deploying it in real life. Thus, a network testbed can be extremely useful. Developing a network testbed using SDNs due to its standard interface between controller applications and switch forwarding tables, which give great flexibility over the network. However, there is a lack of a physical SDN, thus we decided to use Mininet as the physical software defined network infrastructure to create virtual networks. With these motive, we developed \emph{POXVine}: POX Virtual Network Emulator (POX-VI-N-E).
+POXVine takes input the topology specifications of the physical and virtual topologies, and produces a emulated network on Mininet. We describe the exact topology specifications in the next section.
+
+\subsection{Topology Specification}
+\subsubsection{Hosts}
+For specifying the configuration of hosts, POXVine uses RAM size (in gigabytes) of host for deciding the placement of vrtual hosts on each host, i.e a virtual host with RAM size less than remaining capacity of a physical host can be placed on the host. We can safely disregard disk storage for VM placement (can use Network Storage).  We specify the IP address of the host in the configuration. The last field in the configuration is the switch this host is connected in the topology(physical or virtual). One assumption is that a host is only connected to a single switch in the network. 
+\begin{verbatim}
+	<server-name>  <RAM-size>  <ip-address>  <switch-name>
+\end{verbatim}
+
+\subsubsection{Switches}
+POXVine uses Mininet to emulate OpenFlow-enabled switches. To simulate real network constraints, one of the important resources in software-defined networks is flow table size, especially in multi-tenant networks with thousands of hosts. Certain switches in the network can become a bottleneck due to excess of rules installed at the switch. 
+\begin{verbatim}
+<switch-name>  <flow-table-size>  
+\end{verbatim}
+
+\subsubsection{Links}
+POXVIne uses Mininet to emulate the links connecting the hosts and switches. Each link is full-duplex (communication both ways) and the configuration specifies both the end-points of the link. Also, another important link parameter is \emph{bandwidth}. POXVine could be used to map virtual tenants providing \emph{minimum guarantees}. We can also have host mappings which try to minimise the bandwidth utilisation of the tenant. Since we are modeling small area networks (datacenters), we do not consider latency.
+\begin{verbatim}
+<entity-one-name>  <entity-two-name>  <link-bandwidth>  
+\end{verbatim}
+
+\subsection{Output}
+The POXVine system takes the topology configurations as input, and provides a emulated virtual mapped on the physical network using Mininet. POXVine preserves the \emph{virtual network abstraction} for each tenant network and also, we can analyse the physical network on which the virtual network is mapped.
+
+

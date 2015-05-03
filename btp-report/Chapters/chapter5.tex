@@ -68,10 +68,29 @@ end for
 Note that we need to add rules from $v1$ to $v2$ and the other way as well, $v2$ to $v1$. After generating all the routes for a virtual topology, this is passed to the NetworkMapper module, which translates them into OpenFlow rules to install at the respective switches. 
 
 \section{NetworkMapper}
-The NetworkMapper is a POX application. Using the NetworkMapping object, it obtains all the routes it needs to install OpenFlow rules for at the mininet switches. As discussed in the previous chapter, we need \emph{Route Tags} to distinguish between different segments in the network route. The Route class has a function \verb|SetRouteTags()| which differentiates the segments and marks those switches in the route where there is a need to match and increment the route tags (start and end of segments).  
-
+\subsection{Route Tagging}
 \begin{figure}
 	\noindent
 	\makebox[\textwidth]{\includegraphics[width=17cm]{Figures/routetag.png}}%
 	\caption{Setting Up Route Tags}
 \end{figure}
+The NetworkMapper is a POX application. Using the NetworkMapping object, it obtains all the routes it needs to install OpenFlow rules for at the mininet switches. As discussed in the previous chapter, we need \emph{Route Tags} to distinguish between different segments in the network route. The Route class has a function \verb|SetRouteTags()| which differentiates the segments and marks those switches in the route where there is a need to match and increment the route tags (start and end of segments). We illustrate an example in Figure 5.1. \\
+The technique of finding these route tags is, in a network, the start and end of a segment will always be a \emph{virtual entity}. Thus, the switch preceeding and succeeding the virtual entity(will be the same in our case) will need to check and increment the Route Tag. This is done by the function \verb|SetRouteTags()|. 
+
+\subsection{Proactive Rule Installation}
+When a packet reaches a switch which does not have any rule for the packet, a \emph{PacketIn} message is sent to the POX Controller which can install the rule for the corresponding packet at the switch. However, this \emph{reactive} rule installation will have increased latencies for the first flows. POXVine, after receiving the first packet, \emph{proactively} installs all the network rules across all the switches (which will take some time), but any new flow will not be suffer from increased latency due to addition of OpenFlow rules by the controller. However, one problem with \emph{proactive} rule installation is that we need to add rules for communication for all hosts to all other hosts for all tenants, which can impose resource constraints on the switch flow table sizes, thus hindering scalability. With \emph{reactive} rule installation, you add only rules for hosts which are communicating with one other. 
+
+\subsection{Discovery}
+The POX distribution comes with many useful applications. One of them is \emph{Discovery} module, which helps detect the links in the topology. Using this, the NetworkMapper can create the \emph{port map} for each switch(the mapping of switch port and neighbour). This is then used by to install the required rules (therefore, POXVine should not start the installation of rules before all the link discoveries have been received by the controller.) Another use of the Discovery module is that in case of link failures, the NetworkMapper must set up alternate routes to maintain connectivity. 
+
+\subsection{Notes}
+\begin{itemize}
+	\item ARP packets are tricky to handle (in general, broadcast is in such a system). The virtual hosts do not need a ARP protocol for communication, however, to adhere to legacy protocols, ARP packets are flooded across the network. 
+	\item To check IP headers at the switch, we need the packet to match this.
+	\begin{center}
+						\verb|msg.match.dl_type = ethernet.IP_TYPE|
+	\end{center}
+	\item The \emph{VLAN ID} header field is used to store the tenant ID and RouteTag. The 12=bit VLAN ID has tenant ID as the most significant 6 bits and route tag as the least significant 6 bits.
+	\item To send a packet back the input port (in case of loops), the controller needs to add a pecial rule and the outport should be \emph{OFFP\_IN\_PORT}.
+\end{itemize}
+
