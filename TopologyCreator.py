@@ -52,6 +52,6 @@ class TopologyCreator(object):
 			f3.write("h" + str(i) + " vsub" + str(i) + " " + str(self.hostCapacity) + " 10.0." + str(i) + ".5 s" + str(i) + "\n")
 
 
-ring = TopologyCreator("tree", 4, "tenant3", 20)
+ring = TopologyCreator("ring", 1000, "tt0", 10)
 
 		
