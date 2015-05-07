@@ -48,7 +48,6 @@ class NetworkMapping(object) :
 					virtRoute.addDstSubnet(sw2[1])
 					phyRoute = self.physicalTopology.getCompleteRoute(virtRoute)
 					phyRoute.setRouteTags(self.netDatabase)
-					phyRoute.printRoute(self.netDatabase)
 					self.networkRoutes.append(phyRoute)	
 
 

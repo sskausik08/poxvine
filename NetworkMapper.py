@@ -21,6 +21,7 @@ from pox.lib.addresses import IPAddr, EthAddr
 from collections import namedtuple
 import os 
 import sys
+import time
 from NetworkMapping import * 
 from VNSTopology import Topology
 from MinSwitchMapper import *
@@ -45,8 +46,28 @@ class NetworkMapper (EventMixin):
 		self.tenantDatabase = TenantDatabase()
 
 		# Initialize Physical Topology.
+
 		self.phyTopo = Topology("phy", self.netDatabase)
 		self.virtTopos = []
+
+
+		"""# Timing Code. 
+		rt = Topology("tt0", self.netDatabase, self.tenantDatabase.getTenantID("tt0"))
+
+		st = time.time()
+		mapper = MinSwitchMapper(self.phyTopo, rt, self.netDatabase, self.tenantDatabase)
+		mapper.findHostMapping()
+		et = time.time()
+		print("Virtual Topology mapper Timing " + str(et - st))
+		
+		st = time.time()
+		networkMaprt = NetworkMapping(phyTopo = self.phyTopo, virtTopo = rt, netDatabase = self.netDatabase)
+		networkMaprt.read()
+		et = time.time()
+		print("NetworkMapping Timing " + str(et - st))
+		"""
+
+
 		virtTopo1 = Topology("tenant1", self.netDatabase, self.tenantDatabase.getTenantID("tenant1"))
 
 
