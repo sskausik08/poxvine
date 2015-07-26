@@ -28,7 +28,7 @@ where DIR = name of POXVine code folder which you copied in the 'pox' directory.
 This will start the POX controller. 
 
 
-Mininet Infrastructure : 
+###Mininet Infrastructure : 
 <ol>
 <li> Running the POX Controller will create the required mininet files in the directory 
 'virtnetsim-mininet-files' in the POXVine source folder. This folder will contain a PhysicalTopologyCreation.py and various configuration files of the form 'phy-*' 
