@@ -96,6 +96,7 @@ class NetworkMapper (EventMixin):
 		#Temp
 		self.routeAdded = False
 
+		# Write to the mininet configuration files.
 		self.phyTopo.writeToFile()
 
 		

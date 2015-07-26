@@ -44,49 +44,7 @@ Todo:
 1. ARP Packet Handling! 
 2.
 
+Mininet Dynamic Changes : 
+https://mailman.stanford.edu/pipermail/mininet-discuss/2013-April/001958.html
 
-Depth 10 Phy Tree.
-
-Depth = 2
-Physical Topology Initialize Timing 0.0126330852509
-Virtual Topology mapper Timing 0.0580580234528
-NetworkMapping Timing 0.0998578071594
-
-Depth = 4
-Physical Topology Initialize Timing 0.0133459568024
-Virtual Topology mapper Timing 0.0652408599854
-NetworkMapping Timing 6.85209679604
-
-Depth = 6
-Physical Topology Initialize Timing 0.0118291378021
-Virtual Topology mapper Timing 0.0583438873291
-NetworkMapping Timing 7.15825581551
-
-Depth = 8
-Physical Topology Initialize Timing 0.0137639045715
-Virtual Topology mapper Timing 0.0579090118408
-NetworkMapping Timing 6.97599101067
-
-
-
-Ring = 250
-Physical Topology Initialize Timing 0.0143539905548
-Virtual Topology mapper Timing 0.0655620098114
-NetworkMapping Timing 4.43306612968
-
-Ring = 500
-Physical Topology Initialize Timing 0.0122721195221
-Virtual Topology mapper Timing 0.065545797348
-NetworkMapping Timing 4.76353907585
-
-Ring - 750
-Physical Topology Initialize Timing 0.0149240493774
-Virtual Topology mapper Timing 0.0684578418732
-NetworkMapping Timing 5.30993199348
-
-Ring = 1000
-Physical Topology Initialize Timing 0.0175609588623
-Virtual Topology mapper Timing 0.0685470104218
-NetworkMapping Timing 6.21117019653
-
-
+attach/detach function!
